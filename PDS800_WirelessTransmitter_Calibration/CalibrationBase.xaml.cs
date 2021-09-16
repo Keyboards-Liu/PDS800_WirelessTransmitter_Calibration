@@ -264,7 +264,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             {
                 statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
                 {
-                    ShowData(receiveData);
+                    ShowReceiveData(receiveData);
                     ShowParseText(receiveData);
                     ShowParseParameter(receiveData);
                 }));
@@ -273,7 +273,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             {
                 statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
                 {
-                    ShowData(receiveData);
+                    ShowReceiveData(receiveData);
                 }));
             }
         }
@@ -281,7 +281,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// 接收窗口显示功能
         /// </summary>
         /// <param name="receiveText">需要窗口显示的字符串</param>
-        private void ShowData(string receiveText)
+        private void ShowReceiveData(string receiveText)
         {
             // 更新接收字节数           
             receiveBytesCount += (uint)((receiveText.Length + 1) / 3);
@@ -292,10 +292,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                 // 接收窗口自动清空
                 if (autoClearCheckBox.IsChecked == true)
                 {
-                    receiveTextBox.Clear();
+                    displayTextBox.Clear();
                 }
-                receiveTextBox.AppendText(DateTime.Now.ToString() + " <-- " + receiveText + "\r\n");
-                receiveScrollViewer.ScrollToEnd();
+                displayTextBox.AppendText(DateTime.Now.ToString() + " <-- " + receiveText + "\r\n");
+                displayScrollViewer.ScrollToEnd();
             }
 
         }
@@ -731,7 +731,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="e"></param>
         private void ClearReceiveButton_Click(object sender, RoutedEventArgs e)
         {
-            receiveTextBox.Clear();
+            displayTextBox.Clear();
         }
         #endregion
 
@@ -913,7 +913,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         private void FileSave(object sender, ExecutedRoutedEventArgs e)
         {
             // 判断接收区是否有字段
-            if (receiveTextBox.Text == string.Empty)
+            if (displayTextBox.Text == string.Empty)
             {
                 // 如果没有字段，弹出失败提示
                 statusTextBlock.Text = "接收区为空，保存失败。";
@@ -931,7 +931,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 在文本文档中写入当前时间
                     File.AppendAllText(saveFile.FileName, "\r\n******" + DateTime.Now.ToString() + "\r\n******");
                     // 将接收区所有字段写入到文本文档
-                    File.AppendAllText(saveFile.FileName, receiveTextBox.Text);
+                    File.AppendAllText(saveFile.FileName, displayTextBox.Text);
                     // 弹出成功提示
                     statusTextBlock.Text = "保存成功！";
                 }

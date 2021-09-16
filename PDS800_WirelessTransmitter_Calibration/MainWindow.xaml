@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:PDS800_WirelessTransmitter_Calibration"
         mc:Ignorable="d"
         
-        Title="PDS无线变送器报文解析软件"
+        Title="PDS无线变送器标定软件"
         Name="softWareMainWindow" 
         MinHeight="600 " MinWidth="800"
         Height="600 " Width="800">
