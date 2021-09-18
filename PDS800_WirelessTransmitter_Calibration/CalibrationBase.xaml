@@ -40,9 +40,9 @@
         </Grid.ColumnDefinitions>
         <Grid Grid.Column="0" Grid.Row="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="180*"/>
-                <RowDefinition Height="90*"/>
-                <RowDefinition Height="180*"/>
+                <RowDefinition Height="180*" MinHeight="180"/>
+                <RowDefinition Height="90*" MinHeight="90"/>
+                <RowDefinition Height="180*" MinHeight="180"/>
             </Grid.RowDefinitions>
 
             <!--串口配置面板-->
@@ -178,10 +178,10 @@
         </Grid>
         <Grid Grid.Column="1" Grid.Row="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="120*"/>
-                <RowDefinition Height="150*"/>
-                <RowDefinition Height="60*"/>
-                <RowDefinition Height="120*"/>
+                <RowDefinition Height="90*" MinHeight="90"/>
+                <RowDefinition Height="150*" MinHeight="150"/>
+                <RowDefinition Height="90*" MinHeight="90"/>
+                <RowDefinition Height="120*" MinHeight="120"/>
             </Grid.RowDefinitions>
             <!--显示面板-->
             <GroupBox Grid.Row="0" Header="显示文本面板" Margin="5" BorderBrush="Gray">
@@ -259,7 +259,7 @@
                 </WrapPanel>
             </GroupBox>
             <!--仪表参数解析面板-->
-            <GroupBox Grid.Row="1" Header="仪表参数解析面板" Margin="5" BorderBrush="Gray">
+            <GroupBox Grid.Row="1" Header="仪表参数解析面板" Margin="5,10,5,0" BorderBrush="Gray">
                 <WrapPanel VerticalAlignment="Center">
                     <DockPanel Margin="5,0" >
                         <Label Content="通信协议" VerticalAlignment="Center" Width="80"/>
@@ -317,26 +317,14 @@
             </GroupBox>
             <!--标定信息设置面板-->
             <GroupBox Grid.Row="2" Header="标定信息设置面板" Margin="5" BorderBrush="Gray">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <DockPanel>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Width="130">
                         <Grid>
-                            <Label Content="设备描述标定" VerticalAlignment="Center" Width="120"/>
-
+                            <Label Margin="5,0" Content="设备描述标定" VerticalAlignment="Center" Width="120"/>
                         </Grid>
-                        <WrapPanel>
-                            <TextBox IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
-                        </WrapPanel>
-                        <WrapPanel>
-
-                        </WrapPanel>
-                    </DockPanel>
-                </Grid>
-                
+                        <Grid>
+                            <Label Margin="5,0" Content="设备参数标定" VerticalAlignment="Center" Width="120"/>
+                        </Grid>
+                    </StackPanel>
 
 
             </GroupBox>
