@@ -13,7 +13,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using System.Data;
 using System.Data.SqlClient;
-
+using System.Collections;
 
 namespace PDS800_WirelessTransmitter_Calibration
 {
@@ -34,9 +34,15 @@ namespace PDS800_WirelessTransmitter_Calibration
         // 字符编码设定
         private Encoding setEncoding = Encoding.Default;
         // 变量定义
-        private string receiveData;
+
+        // 发送和接收队列
+        public static Queue receiveData = new Queue();
+        public static Queue sendData = new Queue();
+
+        // 发送和接收字节数
         public static uint receiveBytesCount = 0;
         public static uint sendBytesCount = 0;
+        // 发送和接收次数
         public static uint receiveCount = 0;
         public static uint sendCount = 0;
         // 字段封装
@@ -251,31 +257,45 @@ namespace PDS800_WirelessTransmitter_Calibration
         public void ReceiveData(object sender, SerialDataReceivedEventArgs e)
         {
             Thread.Sleep(70);
-            receiveCount++;
             // Console.WriteLine("接收" + receiveCount + "次");
             // 读取缓冲区内所有字节
             byte[] receiveBuffer = new byte[serialPort.BytesToRead];
             serialPort.Read(receiveBuffer, 0, receiveBuffer.Length);
             // 字符串转换为十六进制字符串
-            receiveData = BytestoHexStr(receiveBuffer);
-            // Console.WriteLine(receiveData);
+            string receiveText = BytestoHexStr(receiveBuffer);
+            // Console.WriteLine(receiveText);
             // 传参 (Invoke方法暂停工作线程, BeginInvoke方法不暂停)
-            if (((receiveData.Length + 1) / 3) == 27)
+            if (((receiveText.Length + 1) / 3) == 27)
             {
                 statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
                 {
-                    ShowReceiveData(receiveData);
-                    ShowParseText(receiveData);
-                    ShowParseParameter(receiveData);
+                    receiveCount++;
+                    receiveData.Enqueue(receiveBuffer + " ");
+                    PrintValues(receiveData);
+                    ShowReceiveData(receiveText);
+                    ShowParseText(receiveText);
+                    ShowParseParameter(receiveText);
                 }));
             }
-            else if (((receiveData.Length + 1) / 3) != 27 && receiveData.Replace(" ", "") != "")
+            else if (((receiveText.Length + 1) / 3) != 27 && receiveText.Replace(" ", "") != "")
             {
                 statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
                 {
-                    ShowReceiveData(receiveData);
+                    receiveCount++;
+                    receiveData.Enqueue("<" + receiveCount + "> " + receiveText + " ");
+                    PrintValues(receiveData);
+                    ShowReceiveData(receiveText);
                 }));
             }
+        }
+        public static void PrintValues(IEnumerable myCollection)
+        {
+            foreach (object obj in myCollection)
+            {
+                Console.Write("{0}", obj);
+            }
+
+            Console.WriteLine();
         }
         /// <summary>
         /// 接收窗口显示功能

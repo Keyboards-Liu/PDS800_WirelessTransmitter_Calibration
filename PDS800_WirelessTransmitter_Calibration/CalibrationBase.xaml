@@ -259,7 +259,7 @@
                 </WrapPanel>
             </GroupBox>
             <!--仪表参数解析面板-->
-            <GroupBox Grid.Row="1" Header="仪表参数解析面板" Margin="5,10,5,0" BorderBrush="Gray">
+            <GroupBox Grid.Row="1" Header="仪表参数解析面板" Margin="5" BorderBrush="Gray">
                 <WrapPanel VerticalAlignment="Center">
                     <DockPanel Margin="5,0" >
                         <Label Content="通信协议" VerticalAlignment="Center" Width="80"/>
