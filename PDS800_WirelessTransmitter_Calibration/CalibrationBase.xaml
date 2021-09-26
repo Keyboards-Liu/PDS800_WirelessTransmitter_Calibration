@@ -42,7 +42,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="180*" MinHeight="180"/>
                 <RowDefinition Height="90*" MinHeight="90"/>
-                <RowDefinition Height="180*" MinHeight="180"/>
+                <RowDefinition Height="90*" MinHeight="90"/>
             </Grid.RowDefinitions>
 
             <!--串口配置面板-->
@@ -71,8 +71,8 @@
                         <Ellipse HorizontalAlignment="Center" Height="16" Stroke="White" Width="16" Name="serialPortStatusEllipse" Fill="Gray"/>
                     </DockPanel>
 
-                    <ComboBox x:Name="portNameComboBox" Grid.Row="0" Grid.Column="1" Margin="5" SelectedIndex="0"/>
-                    <ComboBox x:Name="baudRateComboBox" Grid.Row="1" Grid.Column="1" Margin="5" SelectedIndex="11">
+                    <ComboBox Height="24" x:Name="portNameComboBox" Grid.Row="0" Grid.Column="1" Margin="5" SelectedIndex="0"/>
+                    <ComboBox Height="24" x:Name="baudRateComboBox" Grid.Row="1" Grid.Column="1" Margin="5" SelectedIndex="11">
                         <!--自定义串口波特率-->
                         <ComboBoxItem Content="300"/>
                         <ComboBoxItem Content="600"/>
@@ -92,25 +92,25 @@
                         <ComboBoxItem Content="460800"/>
                         <ComboBoxItem Content="921600"/>
                     </ComboBox>
-                    <ComboBox Grid.Row="2" Grid.Column="1" Margin="5" x:Name="parityComboBox" SelectedIndex="0">
+                    <ComboBox Height="24" Grid.Row="2" Grid.Column="1" Margin="5" x:Name="parityComboBox" SelectedIndex="0">
                         <ComboBoxItem Content="None"/>
                         <ComboBoxItem Content="Odd"/>
                         <ComboBoxItem Content="Even"/>
                         <ComboBoxItem Content="Mark"/>
                         <ComboBoxItem Content="Space"/>
                     </ComboBox>
-                    <ComboBox Grid.Row="3" Grid.Column="1" x:Name="dataBitsComboBox" SelectedIndex="3" Margin="5">
+                    <ComboBox Height="24" Grid.Row="3" Grid.Column="1" x:Name="dataBitsComboBox" SelectedIndex="3" Margin="5">
                         <ComboBoxItem Content="5"/>
                         <ComboBoxItem Content="6"/>
                         <ComboBoxItem Content="7"/>
                         <ComboBoxItem Content="8"/>
                     </ComboBox>
-                    <ComboBox Grid.Row="4" Grid.Column="1" x:Name="stopBitsComboBox" SelectedIndex="0" Margin="5">
+                    <ComboBox Height="24" Grid.Row="4" Grid.Column="1" x:Name="stopBitsComboBox" SelectedIndex="0" Margin="5">
                         <ComboBoxItem Content="1"/>
                         <ComboBoxItem Content="1.5"/>
                         <ComboBoxItem Content="3"/>
                     </ComboBox>
-                    <ToggleButton x:Name="turnOnButton" Grid.Row="5" Grid.Column="1" Margin="5" Content="打开串口" Checked="TurnOnButton_Checked" Unchecked="TurnOnButton_Unchecked" />
+                    <ToggleButton  Height="24" x:Name="turnOnButton" Grid.Row="5" Grid.Column="1" Margin="5" Content="打开串口" Checked="TurnOnButton_Checked" Unchecked="TurnOnButton_Unchecked" />
 
 
                 </Grid>
@@ -136,7 +136,7 @@
                 </Grid>
             </GroupBox>
             <!--串口发送面板-->
-            <GroupBox BorderBrush="Gray"  BorderThickness="1" Grid.Row="2" Margin="5" Header="发送面板">
+            <GroupBox BorderBrush="Gray"  BorderThickness="1" Grid.Row="2" Margin="5" Header="发送面板" Visibility="Hidden">
                 <Grid  VerticalAlignment="Center">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="auto"/>
@@ -175,13 +175,36 @@
                     </DockPanel>
                 </Grid>
             </GroupBox>
+            <!--设备参数标定面板-->
+            <GroupBox Grid.Row="2" Header="参数标定面板" Margin="5" BorderBrush="Gray">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                 <DockPanel Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="5,0">
+                    <Label Content="连接状态"/>
+                    <Ellipse HorizontalAlignment="Center" Height="16" Stroke="White" Width="16" Name="sserialPortStatusEllipse" Fill="Gray"/>
+                        <ToggleButton x:Name="tursssnsOnButton" Margin="5" Content="建立连接"/>
+                    </DockPanel>
+                    <ToggleButton Height="24" Grid.Column="0" Grid.Row="1" x:Name="turnsOnsssButton" Margin="5" Content="设备描述标定"/>
+                    <ToggleButton Height="24" Grid.Column="1" Grid.Row="1" x:Name="turnsOnsssBssssutton" Margin="5" Content="设备参数标定"/>
+
+
+                </Grid>
+
+
+            </GroupBox>
         </Grid>
         <Grid Grid.Column="1" Grid.Row="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="90*" MinHeight="90"/>
                 <RowDefinition Height="150*" MinHeight="150"/>
-                <RowDefinition Height="90*" MinHeight="90"/>
-                <RowDefinition Height="120*" MinHeight="120"/>
+                <RowDefinition Height="240*" MinHeight="240"/>
             </Grid.RowDefinitions>
             <!--显示面板-->
             <GroupBox Grid.Row="0" Header="显示文本面板" Margin="5" BorderBrush="Gray">
@@ -316,28 +339,88 @@
                 </WrapPanel>
             </GroupBox>
             <!--标定信息设置面板-->
-            <GroupBox Grid.Row="2" Header="标定信息设置面板" Margin="5" BorderBrush="Gray">
-                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Left" Width="130">
-                        <Grid>
-                            <Label Margin="5,0" Content="设备描述标定" VerticalAlignment="Center" Width="120"/>
-                        </Grid>
-                        <Grid>
-                            <Label Margin="5,0" Content="设备参数标定" VerticalAlignment="Center" Width="120"/>
-                        </Grid>
-                    </StackPanel>
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <!--设备描述标定信息-->
+                <GroupBox Grid.Column="0" Header="设备描述标定信息" Margin="5" BorderBrush="Gray">
+                    <WrapPanel VerticalAlignment="Center">
+                        <DockPanel Margin="5,0">
+                            <Label VerticalAlignment="Center" Content="仪表型号（8byte）" Width="120"/>
+                            <TextBox x:Name="autosSendCycleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <DockPanel Margin="5,0">
+                            <Label VerticalAlignment="Center" Content="系列号（16byte）" Width="120"/>
+                            <TextBox x:Name="autosSensdCycleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <DockPanel Margin="5,0">
+                            <Label VerticalAlignment="Center" Content="IP等级（8byte）" Width="120"/>
+                            <TextBox x:Name="autosdSendCycleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <DockPanel Margin="5,0">
+                            <Label VerticalAlignment="Center" Content="防爆等级（12byte）" Width="120"/>
+                            <TextBox x:Name="autosdSendCysssscleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <DockPanel Margin="5,0">
+                            <Label VerticalAlignment="Center" Content="说明（10byte）" Width="120"/>
+                            <TextBox x:Name="autosdSendssssCycleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </WrapPanel>
+
+                </GroupBox>
+                <!--设备参数标定信息-->
+                <GroupBox Grid.Column="1" Header="设备参数标定信息" Margin="5" BorderBrush="Gray">
+                    <WrapPanel VerticalAlignment="Center">
+                        <DockPanel Margin="5,0">
+                            <Label VerticalAlignment="Center" Content="标定参数" Width="120"/>
+                            <ComboBox Height="24" Margin="0,5" x:Name="dataBitsComboBodx" SelectedIndex="0" MinWidth="120">
+                                <ComboBoxItem Content="0x50，下限标定"/>
+                                <ComboBoxItem Content="0x51，上限标定（加压）"/>
+                                <ComboBoxItem Content="0x52，置零点（SetZero）"/>
+                                <ComboBoxItem Content="0x53，设量程上限"/>
+                                <ComboBoxItem Content="0x54，设量程下限"/>
+                                <ComboBoxItem Content="0x55，显示单位"/>
+                            </ComboBox>
+                        </DockPanel>
+
+                        <DockPanel Margin="5,0">
+                            <Label VerticalAlignment="Center" Content="命令号（1byte）" Width="120"/>
+                            <TextBox x:Name="autosSendCy说说说cleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <DockPanel Margin="5,0">
+                            <Label VerticalAlignment="Center" Content="单位（1byte）" Width="120"/>
+                            <TextBox x:Name="a说说说说说cleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <DockPanel Margin="5,0">
+                            <Label VerticalAlignment="Center" Content="参数" Width="120"/>
+                            <TextBox x:Name="a说说s说说说cleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </WrapPanel>
+
+                </GroupBox>
+                <!--发送文本面板-->
+                <GroupBox Grid.Row="1" Grid.ColumnSpan="2" Header="发送文本面板" Margin="5" BorderBrush="Gray">
+                    <ScrollViewer Margin="5" BorderBrush="Gray">
+                        <TextBox x:Name="sendTextBox" AcceptsReturn="True" TextWrapping="Wrap" TextAlignment="Left"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontFamily="宋体" FontSize="15" PreviewTextInput="SendTextBox_PreviewTextInput" BorderBrush="{x:Null}" BorderThickness="0"/>
+                        <ScrollViewer.ToolTip>
+                            <ToolTip Placement="Top" Content="将要发送的数据，Ctrl+Enter发送"/>
+                        </ScrollViewer.ToolTip>
+                    </ScrollViewer>
+                </GroupBox>
 
 
-            </GroupBox>
 
-            <!--发送文本面板-->
-            <GroupBox Grid.Row="3" Header="发送文本面板" Margin="5" BorderBrush="Gray">
-                <ScrollViewer Grid.Column="1" Grid.Row="2" Margin="5" BorderBrush="Gray">
-                    <TextBox x:Name="sendTextBox" AcceptsReturn="True" TextWrapping="Wrap" TextAlignment="Left"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontFamily="宋体" FontSize="15" PreviewTextInput="SendTextBox_PreviewTextInput" BorderBrush="{x:Null}" BorderThickness="0"/>
-                    <ScrollViewer.ToolTip>
-                        <ToolTip Placement="Top" Content="将要发送的数据，Ctrl+Enter发送"/>
-                    </ScrollViewer.ToolTip>
-                </ScrollViewer>
-            </GroupBox>
+
+            </Grid>
+
+
+
 
         </Grid>
 
