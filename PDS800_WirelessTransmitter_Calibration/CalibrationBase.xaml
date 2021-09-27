@@ -40,8 +40,8 @@
         </Grid.ColumnDefinitions>
         <Grid Grid.Column="0" Grid.Row="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="180*" MinHeight="180"/>
-                <RowDefinition Height="90*" MinHeight="90"/>
+                <RowDefinition Height="150*" MinHeight="150"/>
+                <RowDefinition Height="60*" MinHeight="60"/>
                 <RowDefinition Height="90*" MinHeight="90"/>
             </Grid.RowDefinitions>
 
@@ -185,15 +185,20 @@
                     <Grid.RowDefinitions>
                         <RowDefinition/>
                         <RowDefinition/>
+                        <RowDefinition/>
                     </Grid.RowDefinitions>
                  <DockPanel Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="5,0">
                     <Label Content="连接状态"/>
-                    <Ellipse HorizontalAlignment="Center" Height="16" Stroke="White" Width="16" Name="sserialPortStatusEllipse" Fill="Gray"/>
-                        <ToggleButton x:Name="tursssnsOnButton" Margin="5" Content="建立连接"/>
+                    <Ellipse HorizontalAlignment="Center" Height="16" Stroke="White" Width="16" Name="connectionStatusEllipse" Fill="Gray"/>
+                        <ToggleButton x:Name="establishConnectionButton" Margin="5" Content="建立连接" Checked="EstablishConnectionButton_Checked"/>
                     </DockPanel>
-                    <ToggleButton Height="24" Grid.Column="0" Grid.Row="1" x:Name="turnsOnsssButton" Margin="5" Content="设备描述标定"/>
-                    <ToggleButton Height="24" Grid.Column="1" Grid.Row="1" x:Name="turnsOnsssBssssutton" Margin="5" Content="设备参数标定"/>
-
+                    <ToggleButton Height="24" Grid.Column="0" Grid.Row="1" x:Name="equipmentDescriptionCalibrationButton" Margin="5,0" Content="设备描述标定"/>
+                    <ToggleButton Height="24" Grid.Column="1" Grid.Row="1" x:Name="equipmentParameterCalibrationButton" Margin="5,0" Content="设备参数标定"/>
+                    <Button x:Name="manuallySendButton" Height="24" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="5,0" Content="手动发送" Click="SendButton_Click">
+                        <Button.ToolTip>
+                            <ToolTip Placement="Right" Content="Ctrl+Enter"/>
+                        </Button.ToolTip>
+                    </Button>
 
                 </Grid>
 
@@ -353,23 +358,23 @@
                     <WrapPanel VerticalAlignment="Center">
                         <DockPanel Margin="5,0">
                             <Label VerticalAlignment="Center" Content="仪表型号（8byte）" Width="120"/>
-                            <TextBox x:Name="autosSendCycleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                            <TextBox x:Name="calibrationInstrumentModelTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
                         </DockPanel>
                         <DockPanel Margin="5,0">
                             <Label VerticalAlignment="Center" Content="系列号（16byte）" Width="120"/>
-                            <TextBox x:Name="autosSensdCycleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                            <TextBox x:Name="calibrationSerialNumberTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
                         </DockPanel>
                         <DockPanel Margin="5,0">
                             <Label VerticalAlignment="Center" Content="IP等级（8byte）" Width="120"/>
-                            <TextBox x:Name="autosdSendCycleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                            <TextBox x:Name="calibrationIPRatingTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
                         </DockPanel>
                         <DockPanel Margin="5,0">
                             <Label VerticalAlignment="Center" Content="防爆等级（12byte）" Width="120"/>
-                            <TextBox x:Name="autosdSendCysssscleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                            <TextBox x:Name="calibrationExplosionProofLevelTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
                         </DockPanel>
                         <DockPanel Margin="5,0">
                             <Label VerticalAlignment="Center" Content="说明（10byte）" Width="120"/>
-                            <TextBox x:Name="autosdSendssssCycleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                            <TextBox x:Name="calibrationInstructionsTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
                         </DockPanel>
                     </WrapPanel>
 
@@ -379,7 +384,7 @@
                     <WrapPanel VerticalAlignment="Center">
                         <DockPanel Margin="5,0">
                             <Label VerticalAlignment="Center" Content="标定参数" Width="120"/>
-                            <ComboBox Height="24" Margin="0,5" x:Name="dataBitsComboBodx" SelectedIndex="0" MinWidth="120">
+                            <ComboBox Height="24" Margin="0,5" x:Name="calibrationParametersComboBox" SelectedIndex="0" MinWidth="120">
                                 <ComboBoxItem Content="0x50，下限标定"/>
                                 <ComboBoxItem Content="0x51，上限标定（加压）"/>
                                 <ComboBoxItem Content="0x52，置零点（SetZero）"/>
@@ -391,15 +396,15 @@
 
                         <DockPanel Margin="5,0">
                             <Label VerticalAlignment="Center" Content="命令号（1byte）" Width="120"/>
-                            <TextBox x:Name="autosSendCy说说说cleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                            <TextBox x:Name="calibrationCommandNumberTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
                         </DockPanel>
                         <DockPanel Margin="5,0">
                             <Label VerticalAlignment="Center" Content="单位（1byte）" Width="120"/>
-                            <TextBox x:Name="a说说说说说cleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                            <TextBox x:Name="calibrationUnitTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
                         </DockPanel>
                         <DockPanel Margin="5,0">
                             <Label VerticalAlignment="Center" Content="参数" Width="120"/>
-                            <TextBox x:Name="a说说s说说说cleTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
+                            <TextBox x:Name="calibrationParametersTextBox" Margin="0" Text="1000" MinWidth="120" VerticalAlignment="Center"/>
                         </DockPanel>
                     </WrapPanel>
 

@@ -1106,5 +1106,80 @@ namespace PDS800_WirelessTransmitter_Calibration
             resCRC.Foreground = new SolidColorBrush(Colors.Black);
         }
         #endregion
+        /// <summary>
+        /// 建立连接处理程序
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void EstablishConnectionButton_Checked(object sender, RoutedEventArgs e)
+        {
+            // 判断仪表参数是否解析完成
+            if (resCRC.Text == "通过")
+            {
+                try
+                {
+                    // 发送下行报文建立连接 
+                    // 生成16进制字符串
+                    sendTextBox.Text = EstablishBuild_Text();
+                    // 标定连接发送
+                    //SerialPortSend();
+                }
+                catch
+                {
+                    // 异常时显示提示文字
+                    statusTextBlock.Text = "建立连接出错！";
+                }
+            }
+            else statusTextBlock.Text = "请先解析仪表参数！";
+        }
+
+        private string EstablishBuild_Text()
+        {
+            ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+            // 写操作数据区
+            string strHandlerContent = "F0";
+            // 合成数据域
+            string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+            // 计算长度域
+            int intLength = (strContent.Length + 1) / 3;
+            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+            string strInner = strLength + " " + strCommand + " " + strContent;
+            // 计算异或校验码
+            string strCRC = HexCRC(strInner);
+            // 合成返回值
+            string str = strHeader + " " + strInner + " " + strCRC;
+            return str;
+
+        }
+
+        private void ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
+        {
+            // 帧头
+            strHeader = frameHeader.Text;
+            // 发送命令域
+            strCommand = "44 5F";
+            // 发送地址
+            strAddress = frameAddress.Text;
+            // 协议和厂商号为数据内容前五位
+            strProtocolVendor = frameContent.Text.Substring(0, 5);
+            // 手操器
+            strHandler = "1F 10";
+            // 组号表号
+            strGroup = frameContent.Text.Substring(18, 5);
+            // 数据类型
+            strFunctionData = "00 80";
+        }
+
+        private string HexCRC(string ori)
+        {
+            string[] hexvalue = ori.Trim().Split(' ', '	');
+            Console.WriteLine(hexvalue);
+            string j = "";
+            foreach (string hex in hexvalue)
+            {
+                j = HexStrXor(j, hex);
+            }
+            return j;
+        }
     }
 }
