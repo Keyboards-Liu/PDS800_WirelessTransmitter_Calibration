@@ -1004,6 +1004,22 @@ namespace PDS800_WirelessTransmitter_Calibration
             result += iGap >= 0 ? HexStr1.Substring(i, iGap) : HexStr2.Substring(i, -iGap);
             return result;
         }
+
+        /// <summary>
+        /// 一串字符串求异或值
+        /// </summary>
+        /// <param name="ori"></param>
+        /// <returns></returns>
+        private string HexCRC(string ori)
+        {
+            string[] hexvalue = ori.Trim().Split(' ', '	');
+            string j = "";
+            foreach (string hex in hexvalue)
+            {
+                j = HexStrXor(j, hex);
+            }
+            return j;
+        }
         /// <summary>
         /// 将十六进制字符串转换为十六进制数组
         /// </summary>
@@ -1122,12 +1138,19 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 生成16进制字符串
                     sendTextBox.Text = EstablishBuild_Text();
                     // 标定连接发送
-                    //SerialPortSend();
+                    // SerialPortSend();
+                    // 指示灯变绿
+                    if (true)
+                    {
+                        connectionStatusEllipse.Fill = Brushes.Green;
+                    }
                 }
                 catch
                 {
                     // 异常时显示提示文字
                     statusTextBlock.Text = "建立连接出错！";
+                    // 指示灯变灰
+                    connectionStatusEllipse.Fill = Brushes.Gray;
                 }
             }
             else statusTextBlock.Text = "请先解析仪表参数！";
@@ -1135,6 +1158,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         private string EstablishBuild_Text()
         {
+            // 获取所需解析数据
             ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
             // 写操作数据区
             string strHandlerContent = "F0";
@@ -1170,16 +1194,186 @@ namespace PDS800_WirelessTransmitter_Calibration
             strFunctionData = "00 80";
         }
 
-        private string HexCRC(string ori)
+
+
+
+        private void DescriptionCalibrationButton_Click(object sender, RoutedEventArgs e)
         {
-            string[] hexvalue = ori.Trim().Split(' ', '	');
-            Console.WriteLine(hexvalue);
-            string j = "";
-            foreach (string hex in hexvalue)
+            // 判断仪表参数是否解析完成和是否处于连接状态
+            if (resCRC.Text == "通过" && connectionStatusEllipse.Fill == Brushes.Green)
             {
-                j = HexStrXor(j, hex);
+                try
+                {
+                    // 发送下行报文建立连接 
+                    // 生成16进制字符串
+                    sendTextBox.Text = DescribeCalibration_Text();
+                    // 标定连接发送
+                    // SerialPortSend();
+                    if (true)
+                    {
+                        connectionStatusEllipse.Fill = Brushes.Gray;
+                    }
+                }
+                catch
+                {
+                    // 异常时显示提示文字
+                    statusTextBlock.Text = "描述标定出错！";
+                }
             }
-            return j;
+            else statusTextBlock.Text = "请先建立连接！";
         }
+
+        private void ParameterCalibrationButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 判断仪表参数是否解析完成和是否处于连接状态
+            if (resCRC.Text == "通过" && connectionStatusEllipse.Fill == Brushes.Green)
+            {
+                try
+                {
+                    // 发送下行报文建立连接 
+                    // 生成16进制字符串
+                    sendTextBox.Text = ParameterCalibration_Text();
+                    // 标定连接发送
+                    // SerialPortSend();
+                }
+                catch
+                {
+                    // 异常时显示提示文字
+                    statusTextBlock.Text = "描述标定出错！";
+                }
+            }
+            else statusTextBlock.Text = "请先建立连接！";
+        }
+
+        private string ParameterCalibration_Text()
+        {
+            // 获取所需解析数据
+            ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+            // 获取设备描述标定信息
+            // 写操作数据区
+            string strHandlerContent = "F2 " + calibrationCommandNumberTextBox.Text.Trim() + " " + calibrationUnitTextBox.Text.Trim();
+            // 合成数据域
+            string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+            // 计算长度域
+            int intLength = (strContent.Length + 1) / 3;
+            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+            string strInner = strLength + " " + strCommand + " " + strContent;
+            // 计算异或校验码
+            string strCRC = HexCRC(strInner);
+            // 合成返回值
+            string str = strHeader + " " + strInner + " " + strCRC;
+            return str;
+        }
+    
+
+        private string DescribeCalibration_Text()
+        {
+            // 获取所需解析数据
+            ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+            // 获取设备描述标定信息
+            // 写操作数据区
+            string strHandlerContent = "F1 " + calibrationInstrumentModelTextBox.Text.Trim() + " " + calibrationSerialNumberTextBox.Text.Trim() + " " + calibrationIPRatingTextBox.Text.Trim() + " " + calibrationExplosionProofLevelTextBox.Text.Trim() + " " + calibrationInstructionsTextBox.Text.Trim();
+            // 合成数据域
+            string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+            // 计算长度域
+            int intLength = (strContent.Length + 1) / 3;
+            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+            string strInner = strLength + " " + strCommand + " " + strContent;
+            // 计算异或校验码
+            string strCRC = HexCRC(strInner);
+            // 合成返回值
+            string str = strHeader + " " + strInner + " " + strCRC;
+            return str;
+        }
+
+        private void CalibrationInstrumentModelTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // 将光标移至文字末尾
+            calibrationInstrumentModelTextBox.SelectionStart = calibrationInstrumentModelTextBox.Text.Length;
+            MatchCollection hexadecimalCollection = Regex.Matches(e.Text, @"[\da-fA-F]");
+            foreach (Match mat in hexadecimalCollection)
+            {
+                calibrationInstrumentModelTextBox.AppendText(mat.Value);
+            }
+            // 每输入两个字符自动添加空格
+            calibrationInstrumentModelTextBox.Text = calibrationInstrumentModelTextBox.Text.Replace(" ", "");
+            calibrationInstrumentModelTextBox.Text = string.Join(" ", Regex.Split(calibrationInstrumentModelTextBox.Text, "(?<=\\G.{2})(?!$)"));
+            calibrationInstrumentModelTextBox.SelectionStart = calibrationInstrumentModelTextBox.Text.Length;
+            e.Handled = true;
+        }
+
+        private void CalibrationSerialNumberTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // 将光标移至文字末尾
+            calibrationSerialNumberTextBox.SelectionStart = calibrationSerialNumberTextBox.Text.Length;
+            MatchCollection hexadecimalCollection = Regex.Matches(e.Text, @"[\da-fA-F]");
+            foreach (Match mat in hexadecimalCollection)
+            {
+                calibrationSerialNumberTextBox.AppendText(mat.Value);
+            }
+            // 每输入两个字符自动添加空格
+            calibrationSerialNumberTextBox.Text = calibrationSerialNumberTextBox.Text.Replace(" ", "");
+            calibrationSerialNumberTextBox.Text = string.Join(" ", Regex.Split(calibrationSerialNumberTextBox.Text, "(?<=\\G.{2})(?!$)"));
+            calibrationSerialNumberTextBox.SelectionStart = calibrationSerialNumberTextBox.Text.Length;
+            e.Handled = true;
+        }
+
+        private void CalibrationIPRatingTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // 将光标移至文字末尾
+            calibrationIPRatingTextBox.SelectionStart = calibrationIPRatingTextBox.Text.Length;
+            MatchCollection hexadecimalCollection = Regex.Matches(e.Text, @"[\da-fA-F]");
+            foreach (Match mat in hexadecimalCollection)
+            {
+                calibrationIPRatingTextBox.AppendText(mat.Value);
+            }
+            // 每输入两个字符自动添加空格
+            calibrationIPRatingTextBox.Text = calibrationIPRatingTextBox.Text.Replace(" ", "");
+            calibrationIPRatingTextBox.Text = string.Join(" ", Regex.Split(calibrationIPRatingTextBox.Text, "(?<=\\G.{2})(?!$)"));
+            calibrationIPRatingTextBox.SelectionStart = calibrationIPRatingTextBox.Text.Length;
+            e.Handled = true;
+        }
+
+        private void CalibrationExplosionProofLevelTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // 将光标移至文字末尾
+            calibrationExplosionProofLevelTextBox.SelectionStart = calibrationExplosionProofLevelTextBox.Text.Length;
+            MatchCollection hexadecimalCollection = Regex.Matches(e.Text, @"[\da-fA-F]");
+            foreach (Match mat in hexadecimalCollection)
+            {
+                calibrationExplosionProofLevelTextBox.AppendText(mat.Value);
+            }
+            // 每输入两个字符自动添加空格
+            calibrationExplosionProofLevelTextBox.Text = calibrationExplosionProofLevelTextBox.Text.Replace(" ", "");
+            calibrationExplosionProofLevelTextBox.Text = string.Join(" ", Regex.Split(calibrationExplosionProofLevelTextBox.Text, "(?<=\\G.{2})(?!$)"));
+            calibrationExplosionProofLevelTextBox.SelectionStart = calibrationExplosionProofLevelTextBox.Text.Length;
+            e.Handled = true;
+        }
+
+        private void CalibrationInstructionsTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // 将光标移至文字末尾
+            calibrationInstructionsTextBox.SelectionStart = calibrationInstructionsTextBox.Text.Length;
+            MatchCollection hexadecimalCollection = Regex.Matches(e.Text, @"[\da-fA-F]");
+            foreach (Match mat in hexadecimalCollection)
+            {
+                calibrationInstructionsTextBox.AppendText(mat.Value);
+            }
+            // 每输入两个字符自动添加空格
+            calibrationInstructionsTextBox.Text = calibrationInstructionsTextBox.Text.Replace(" ", "");
+            calibrationInstructionsTextBox.Text = string.Join(" ", Regex.Split(calibrationInstructionsTextBox.Text, "(?<=\\G.{2})(?!$)"));
+            calibrationInstructionsTextBox.SelectionStart = calibrationInstructionsTextBox.Text.Length;
+            e.Handled = true;
+        }
+
+        private void CalibrationParametersComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (calibrationParametersComboBox.Text.Length >= 4)
+            {
+                calibrationCommandNumberTextBox.Text = calibrationParametersComboBox.Text.Substring(2, 2);
+            }
+        }
+
+
     }
 }
