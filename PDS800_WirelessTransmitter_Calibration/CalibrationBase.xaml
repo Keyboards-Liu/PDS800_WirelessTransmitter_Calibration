@@ -399,11 +399,7 @@
                             <DockPanel Margin="5,0">
                                 <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="单位（1byte）" Width="120"/>
                                 <TextBox x:Name="calibrationUnitTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
-                            </DockPanel>
-                            <DockPanel Margin="5,0">
-                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="参数" Width="120"/>
-                                <TextBox x:Name="calibrationParametersTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
-                            </DockPanel>
+                            </DockPanel>                            
                         </WrapPanel>
                     </TabItem>
                 </TabControl>
