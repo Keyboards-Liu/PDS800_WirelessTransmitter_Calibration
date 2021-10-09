@@ -224,44 +224,8 @@
                 </ScrollViewer>
             </GroupBox>
             <!--接收文本解析面板-->
-            <GroupBox Visibility="Hidden" Width="0" Height="0" Header="接收文本解析面板" BorderBrush="Gray">
-                <!--半固定面板-->
-                <!--<Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition/>
-                    <RowDefinition/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition/>
-                    <ColumnDefinition/>
-                    <ColumnDefinition/>
-                </Grid.ColumnDefinitions>
-                <DockPanel Grid.Column="0" Grid.Row="0" Margin="5,0">
-                    <Label Content="帧头" VerticalAlignment="Center" Width="80"/>
-                    <TextBox x:Name="frameHeader" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center"/>
-                </DockPanel>
-                <DockPanel Grid.Column="1" Grid.Row="0" Margin="5,0">
-                    <Label Content="长度域" VerticalAlignment="Center" Width="80"/>
-                    <TextBox x:Name="frameLength" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
-                </DockPanel>
-                <DockPanel Grid.Column="2" Grid.Row="0" Margin="5,0">
-                    <Label Content="命令域" VerticalAlignment="Center" Width="80"/>
-                    <TextBox x:Name="frameCommand" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
-                </DockPanel>
-                <DockPanel Grid.Column="0" Grid.Row="1" Margin="5,0">
-                    <Label Content="数据地址域" VerticalAlignment="Center" Width="80"/>
-                    <TextBox x:Name="frameAddress" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
-                </DockPanel>
-                <DockPanel Grid.Column="1" Grid.Row="1" Margin="5,0">
-                    <Label Content="数据内容域" VerticalAlignment="Center" Width="80"/>
-                    <TextBox x:Name ="frameContent"  IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
-                </DockPanel>
-                <DockPanel Grid.Column="2" Grid.Row="1" Margin="5,0">
-                    <Label Content="校验码" VerticalAlignment="Center" Width="80"/>
-                    <TextBox x:Name="frameCRC" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" />
-                </DockPanel>
-            </Grid>-->
-                <!--非固定面板-->
+            <!--<GroupBox Visibility="Hidden" Width="0" Height="0" Header="接收文本解析面板" BorderBrush="Gray">
+                --><!--非固定面板--><!--
                 <WrapPanel>
                     <DockPanel Margin="5,0">
                         <Label Content="帧头" VerticalAlignment="Center" Width="80"/>
@@ -288,7 +252,7 @@
                         <TextBox x:Name ="frameContent"  IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
                 </WrapPanel>
-            </GroupBox>
+            </GroupBox>-->
             <!--仪表参数解析面板-->
             <GroupBox Grid.Row="1" Header="仪表参数解析面板" Margin="5" BorderBrush="Gray">
                 <WrapPanel VerticalAlignment="Center">
