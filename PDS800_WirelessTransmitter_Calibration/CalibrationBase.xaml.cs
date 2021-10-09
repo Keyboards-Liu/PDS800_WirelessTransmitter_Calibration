@@ -393,7 +393,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                             frameCommand = receiveText.Substring((0 + 1 + 2) * 3, (1 * 3) - 1);
                             // 数据地址域 (8位)
                             frameAddress = receiveText.Substring((0 + 1 + 2 + 1) * 3, (8 * 3) - 1);
-                            // 数据内容域 (长度域指示长度 - 命令域长度 - 地址域长度 - 固定长度9)
+                            // 数据内容域 (长度域指示长度38 - 命令域长度1 - 地址域长度8 - 固定长度9 = 20)
                             frameContent = receiveText.Substring(receiveText.Length - (21 * 3) + 1, (20 * 3) - 1);
                             // 校验码 (1位)
                             frameCRC = receiveText.Substring(receiveText.Length - 2, 2);
@@ -1562,45 +1562,89 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         private string EstablishBuild_Text()
         {
-            // 获取所需解析数据
-            ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
-            // 写操作数据区
-            string strHandlerContent = "F0";
-            // 合成数据域
-            string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-            // 计算长度域
-            int intLength = (strContent.Length + 1) / 3;
-            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-            string strInner = strLength + " " + strCommand + " " + strContent;
-            // 计算异或校验码
-            string strCRC = HexCRC(strInner);
-            // 合成返回值
-            string str = strHeader + " " + strInner + " " + strCRC;
+            string str = "";
+            switch (frameHeader)
+            {
+                case "FE":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        // 写操作数据区
+                        string strHandlerContent = "F0";
+                        // 合成数据域
+                        string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        string strInner = strLength + " " + strCommand + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = HexCRC(strInner);
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                case "7E":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        // 写操作数据区
+                        string strHandlerContent = "F0";
+                        // 合成数据域
+                        string strContent = strCommand + " " + frameAddress + " FF FE E8 E8 00 11 18 57 01 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                        string strInner = strLength + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = HexCRC(strInner);
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                default:
+                    break;
+            }
             return str;
 
         }
 
-        private void ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
+
+
+        private void ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
         {
+            // 获取所需解析数据
             // 帧头
-            strHeader = frameHeader;
+            strHeader = "FE";
             // 发送命令域
             strCommand = "44 5F";
             // 发送地址
             strAddress = frameAddress;
-            // 协议和厂商号为数据内容前五位
-            strProtocolVendor = frameContent.Substring(0, 5);
-            // 手操器
+            // 协议和厂商号为数据内容前四位
+            strProtocolVendor = frameContent.Substring(0, 11);
+            // 仪表类型：手操器
             strHandler = "1F 10";
             // 组号表号
             strGroup = frameContent.Substring(18, 5);
-            // 数据类型
+            // 功能码 / 数据类型
             strFunctionData = "00 80";
         }
-
-
-
-
+        private void ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
+        {
+            // 帧头
+            strHeader = "7E";
+            // 发送命令域
+            strCommand = "91";
+            // 发送地址
+            strAddress = frameAddress;
+            // 协议和厂商号为数据内容前四位
+            strProtocolVendor = frameContent.Substring(0, 11);
+            // 仪表类型：手操器
+            strHandler = "1F 10";
+            // 组号表号
+            strGroup = frameContent.Substring(18, 5);
+            // 功能码 / 数据类型
+            strFunctionData = "00 80";
+        }
         private void DescriptionCalibrationButton_Click(object sender, RoutedEventArgs e)
         {
             // 判断仪表参数是否解析完成和是否处于连接状态
@@ -1651,42 +1695,102 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         private string ParameterCalibration_Text()
         {
-            // 获取所需解析数据
-            ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
-            // 获取设备描述标定信息
-            // 写操作数据区
-            string strHandlerContent = "F2 " + calibrationCommandNumberTextBox.Text.Trim() + " " + calibrationUnitTextBox.Text.Trim();
-            // 合成数据域
-            string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-            // 计算长度域
-            int intLength = (strContent.Length + 1) / 3;
-            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-            string strInner = strLength + " " + strCommand + " " + strContent;
-            // 计算异或校验码
-            string strCRC = HexCRC(strInner);
-            // 合成返回值
-            string str = strHeader + " " + strInner + " " + strCRC;
+            string str = "";
+            switch (frameHeader)
+            {
+                case "FE":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        // 获取设备描述标定信息
+                        // 写操作数据区
+                        string strHandlerContent = "F2 " + calibrationCommandNumberTextBox.Text.Trim() + " " + calibrationUnitTextBox.Text.Trim();
+                        // 合成数据域
+                        string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        string strInner = strLength + " " + strCommand + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = HexCRC(strInner);
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                case "7E":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        // 获取设备描述标定信息
+                        // 写操作数据区
+                        string strHandlerContent = "F2 " + calibrationCommandNumberTextBox.Text.Trim() + " " + calibrationUnitTextBox.Text.Trim();
+                        // 合成数据域
+                        string strContent = strCommand + " " + frameAddress + " FF FE E8 E8 00 11 18 57 01 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                        string strInner = strLength + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = HexCRC(strInner);
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
             return str;
         }
     
 
         private string DescribeCalibration_Text()
         {
-            // 获取所需解析数据
-            ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
-            // 获取设备描述标定信息
-            // 写操作数据区
-            string strHandlerContent = "F1 " + calibrationInstrumentModelTextBox.Text.Trim() + " " + calibrationSerialNumberTextBox.Text.Trim() + " " + calibrationIPRatingTextBox.Text.Trim() + " " + calibrationExplosionProofLevelTextBox.Text.Trim() + " " + calibrationInstructionsTextBox.Text.Trim();
-            // 合成数据域
-            string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-            // 计算长度域
-            int intLength = (strContent.Length + 1) / 3;
-            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-            string strInner = strLength + " " + strCommand + " " + strContent;
-            // 计算异或校验码
-            string strCRC = HexCRC(strInner);
-            // 合成返回值
-            string str = strHeader + " " + strInner + " " + strCRC;
+            string str = "";
+            switch (frameHeader)
+            {
+                case "FE":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        // 获取设备描述标定信息
+                        // 写操作数据区
+                        string strHandlerContent = "F1 " + calibrationInstrumentModelTextBox.Text.Trim() + " " + calibrationSerialNumberTextBox.Text.Trim() + " " + calibrationIPRatingTextBox.Text.Trim() + " " + calibrationExplosionProofLevelTextBox.Text.Trim() + " " + calibrationInstructionsTextBox.Text.Trim();
+                        // 合成数据域
+                        string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        string strInner = strLength + " " + strCommand + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = HexCRC(strInner);
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                case "7E":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        // 获取设备描述标定信息
+                        // 写操作数据区
+                        string strHandlerContent = "F1 " + calibrationInstrumentModelTextBox.Text.Trim() + " " + calibrationSerialNumberTextBox.Text.Trim() + " " + calibrationIPRatingTextBox.Text.Trim() + " " + calibrationExplosionProofLevelTextBox.Text.Trim() + " " + calibrationInstructionsTextBox.Text.Trim();
+                        // 合成数据域
+                        string strContent = strCommand + " " + frameAddress + " FF FE E8 E8 00 11 18 57 01 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                        string strInner = strLength + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = HexCRC(strInner);
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
             return str;
         }
 
