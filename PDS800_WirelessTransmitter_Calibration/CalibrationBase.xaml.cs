@@ -33,21 +33,33 @@ namespace PDS800_WirelessTransmitter_Calibration
         private DispatcherTimer GetCurrentTimer = new DispatcherTimer();
         // 字符编码设定
         private Encoding setEncoding = Encoding.Default;
+
         // 变量定义
-
-        // 发送和接收队列
-        public static Queue receiveData = new Queue();
-        public static Queue sendData = new Queue();
-
+        // 日期
+        public string DateStr { get; set; }
+        // 时刻
+        public string TimeStr { get; set; }
+        //// 发送和接收队列
+        //public static Queue receiveData = new Queue();
+        //public static Queue sendData = new Queue();
         // 发送和接收字节数
         public static uint receiveBytesCount = 0;
         public static uint sendBytesCount = 0;
         // 发送和接收次数
         public static uint receiveCount = 0;
         public static uint sendCount = 0;
-        // 字段封装
-        public string DateStr { get; set; }
-        public string TimeStr { get; set; }
+        // 帧头
+        public string frameHeader;
+        // 长度域
+        public string frameLength;
+        // 命令域
+        public string frameCommand;
+        // 数据地址域
+        public string frameAddress;
+        // 数据内容域
+        public string frameContent;
+        // 校验码
+        public string frameCRC;
         /// <summary>
         /// 关闭窗口
         /// </summary>
@@ -347,10 +359,8 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// 接收文本解析面板显示功能
         /// </summary>
         /// <param name="receiveText"></param>
-        private void ShowParseText(string receiveText)
+        public void ShowParseText(string receiveText)
         {
-            // 面板清空
-            ParseTextClear();
             // 接收文本解析面板写入
             try
             {
@@ -359,34 +369,34 @@ namespace PDS800_WirelessTransmitter_Calibration
                     case "FE":
                         {
                             // 帧头 (1位)
-                            frameHeader.Text = receiveText.Substring(0 * 3, (1 * 3) - 1);
+                            frameHeader = receiveText.Substring(0 * 3, (1 * 3) - 1);
                             // 长度域 (1位, 最长为FF = 255)
-                            frameLength.Text = receiveText.Substring((0 + 1) * 3, (1 * 3) - 1);
+                            frameLength = receiveText.Substring((0 + 1) * 3, (1 * 3) - 1);
                             // 命令域 (2位)
-                            frameCommand.Text = receiveText.Substring((0 + 1 + 1) * 3, (2 * 3) - 1);
+                            frameCommand = receiveText.Substring((0 + 1 + 1) * 3, (2 * 3) - 1);
                             // 数据域 (长度域指示长度)
                             // 数据地址域 (2位)
-                            frameAddress.Text = receiveText.Substring((0 + 1 + 1 + 2) * 3, (2 * 3) - 1);
+                            frameAddress = receiveText.Substring((0 + 1 + 1 + 2) * 3, (2 * 3) - 1);
                             // 数据内容域 (长度域指示长度 - 2)
-                            frameContent.Text = receiveText.Substring((0 + 1 + 1 + 2 + 2) * 3, ((Convert.ToInt32(frameLength.Text, 16) - 2) * 3) - 1);
+                            frameContent = receiveText.Substring((0 + 1 + 1 + 2 + 2) * 3, ((Convert.ToInt32(frameLength, 16) - 2) * 3) - 1);
                             // 校验码 (1位)
-                            frameCRC.Text = receiveText.Substring(receiveText.Length - 2, 2);
+                            frameCRC = receiveText.Substring(receiveText.Length - 2, 2);
                         }
                         break;
                     case "7E":
                         {
                             // 帧头 (1位)
-                            frameHeader.Text = receiveText.Substring(0 * 3, (1 * 3) - 1);
+                            frameHeader = receiveText.Substring(0 * 3, (1 * 3) - 1);
                             // 长度域 (2位, 最长为FF = 65535)
-                            frameLength.Text = receiveText.Substring((0 + 1) * 3, (2 * 3) - 1);
+                            frameLength = receiveText.Substring((0 + 1) * 3, (2 * 3) - 1);
                             // 命令域 (1位，指示是否收到数据)
-                            frameCommand.Text = receiveText.Substring((0 + 1 + 2) * 3, (1 * 3) - 1);
+                            frameCommand = receiveText.Substring((0 + 1 + 2) * 3, (1 * 3) - 1);
                             // 数据地址域 (8位)
-                            frameAddress.Text = receiveText.Substring((0 + 1 + 2 + 1) * 3, (8 * 3) - 1);
+                            frameAddress = receiveText.Substring((0 + 1 + 2 + 1) * 3, (8 * 3) - 1);
                             // 数据内容域 (长度域指示长度 - 命令域长度 - 地址域长度 - 固定长度9)
-                            frameContent.Text = receiveText.Substring(receiveText.Length - (21 * 3) + 1, (20 * 3) - 1);
+                            frameContent = receiveText.Substring(receiveText.Length - (21 * 3) + 1, (20 * 3) - 1);
                             // 校验码 (1位)
-                            frameCRC.Text = receiveText.Substring(receiveText.Length - 2, 2);
+                            frameCRC = receiveText.Substring(receiveText.Length - 2, 2);
                         }
                         break;
                     default:
@@ -415,7 +425,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 string[] hexvalue = receiveText.Trim().Split(' ');
                 // 求字符串异或值
                 foreach (string hex in hexvalue) j = HexStrXor(j, hex);
-                //if (j == frameHeader.Text)
+                //if (j == frameHeader)
                 if (true)
                 {
                     resCRC.Text = "通过";
@@ -429,7 +439,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     try
                                     {
                                         // 1 0x0001 ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）
-                                        string frameProtocol = frameContent.Text.Substring(0, 5).Replace(" ", "");
+                                        string frameProtocol = frameContent.Substring(0, 5).Replace(" ", "");
                                         int intFrameProtocol = Convert.ToInt32(frameProtocol, 16);
                                         switch (intFrameProtocol)
                                         {
@@ -452,7 +462,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 网络地址
                                     try
                                     {
-                                        string frameContentAddress = (frameAddress.Text.Substring(3, 2) + frameAddress.Text.Substring(0, 2)).Replace(" ", "");
+                                        string frameContentAddress = (frameAddress.Substring(3, 2) + frameAddress.Substring(0, 2)).Replace(" ", "");
                                         int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
                                         resAddress.Text = intFrameContentAddress.ToString();
                                     }
@@ -466,7 +476,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 厂商号
                                     try
                                     {
-                                        string frameContentVendor = frameContent.Text.Substring(6, 5).Replace(" ", "");
+                                        string frameContentVendor = frameContent.Substring(6, 5).Replace(" ", "");
                                         int intFrameContentVendor = Convert.ToInt32(frameContentVendor, 16);
                                         // 1 0x0001 厂商1
                                         // 2 0x0002 厂商2
@@ -495,7 +505,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 仪表类型
                                     try
                                     {
-                                        string frameContentType = frameContent.Text.Substring(12, 5).Replace(" ", "");
+                                        string frameContentType = frameContent.Substring(12, 5).Replace(" ", "");
                                         int intFrameContentType = Convert.ToInt32(frameContentType, 16);
                                         // 1  0x0001 无线一体化负荷
                                         // 2  0x0002 无线压力
@@ -559,7 +569,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 仪表组号
                                     try
                                     {
-                                        resGroup.Text = Convert.ToInt32(frameContent.Text.Substring(18, 2).Replace(" ", ""), 16) + "组" + Convert.ToInt32(frameContent.Text.Substring(21, 2).Replace(" ", ""), 16) + "号";
+                                        resGroup.Text = Convert.ToInt32(frameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" + Convert.ToInt32(frameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
                                     }
                                     catch
                                     {
@@ -571,7 +581,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 数据类型
                                     try
                                     {
-                                        string frameContentFunctionData = frameContent.Text.Substring(24, 5).Replace(" ", "");
+                                        string frameContentFunctionData = frameContent.Substring(24, 5).Replace(" ", "");
                                         int intFrameContentFunctionData = Convert.ToInt32(frameContentFunctionData, 16);
                                         // 1  0x0000 常规数据
                                         // 2  ……
@@ -651,7 +661,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 通信效率
                                 try
                                 {
-                                    resSucRate.Text = Convert.ToInt32(frameContent.Text.Substring(30, 2), 16).ToString() + "%";
+                                    resSucRate.Text = Convert.ToInt32(frameContent.Substring(30, 2), 16).ToString() + "%";
                                 }
                                 catch
                                 {
@@ -663,7 +673,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 电池电压
                                 try
                                 {
-                                    resBatVol.Text = Convert.ToInt32(frameContent.Text.Substring(33, 2), 16) + "%";
+                                    resBatVol.Text = Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
                                 }
                                 catch
                                 {
@@ -675,7 +685,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 休眠时间
                                 try
                                 {
-                                    resSleepTime.Text = Convert.ToInt32(frameContent.Text.Substring(36, 5).Replace(" ", ""), 16) + "秒";
+                                    resSleepTime.Text = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16) + "秒";
                                 }
                                 catch
                                 {
@@ -687,7 +697,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 仪表状态
                                 try
                                 {
-                                    string frameStatue = frameContent.Text.Substring(42, 5).Replace(" ", "");
+                                    string frameStatue = frameContent.Substring(42, 5).Replace(" ", "");
                                     string binFrameStatue = Convert.ToString(Convert.ToInt32(frameStatue, 16), 2).PadLeft(8, '0');
                                     if (Convert.ToInt32(binFrameStatue.Replace(" ", ""), 2) != 0)
                                     {
@@ -742,7 +752,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 运行时间
                                 try
                                 {
-                                    resTime.Text = Convert.ToInt32(frameContent.Text.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
+                                    resTime.Text = Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
                                 }
                                 catch
                                 {
@@ -755,10 +765,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
 
-                                    string frameresData = frameContent.Text.Substring(54, 5).Replace(" ", "").TrimStart('0');
+                                    string frameresData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
                                     resData.Text = frameresData + "MPa";
                                     // 十六进制字符串转换为浮点数字符串
-                                    //string frameresData = frameContent.Text.Substring(48, 11).Replace(" ", "");
+                                    //string frameresData = frameContent.Substring(48, 11).Replace(" ", "");
                                     //double flFrameData = HexStrToFloat(frameresData);
                                     //resData.Text = flFrameData.ToString();
                                 }
@@ -779,7 +789,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     try
                                     {
                                         // 1 0x0001 ZigBee（Digi International）
-                                        string frameProtocol = frameContent.Text.Substring(0, 5).Replace(" ", "");
+                                        string frameProtocol = frameContent.Substring(0, 5).Replace(" ", "");
                                         int intFrameProtocol = Convert.ToInt32(frameProtocol, 16);
                                         switch (intFrameProtocol)
                                         {
@@ -802,10 +812,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 网络地址
                                     try
                                     {
-                                        //string frameContentAddress = (frameAddress.Text.Substring(3, 2) + frameAddress.Text.Substring(0, 2)).Replace(" ", "");
+                                        //string frameContentAddress = (frameAddress.Substring(3, 2) + frameAddress.Substring(0, 2)).Replace(" ", "");
                                         //int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
                                         //resAddress.Text = intFrameContentAddress.ToString();
-                                        resAddress.Text = frameAddress.Text;
+                                        resAddress.Text = frameAddress;
                                     }
                                     catch
                                     {
@@ -817,7 +827,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 厂商号
                                     try
                                     {
-                                        string frameContentVendor = frameContent.Text.Substring(6, 5).Replace(" ", "");
+                                        string frameContentVendor = frameContent.Substring(6, 5).Replace(" ", "");
                                         int intFrameContentVendor = Convert.ToInt32(frameContentVendor, 16);
                                         // 1 0x0001 厂商1
                                         // 2 0x0002 厂商2
@@ -846,7 +856,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 仪表类型
                                     try
                                     {
-                                        string frameContentType = frameContent.Text.Substring(12, 5).Replace(" ", "");
+                                        string frameContentType = frameContent.Substring(12, 5).Replace(" ", "");
                                         int intFrameContentType = Convert.ToInt32(frameContentType, 16);
                                         // 1  0x0001 无线一体化负荷
                                         // 2  0x0002 无线压力
@@ -910,7 +920,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 仪表组号
                                     try
                                     {
-                                        resGroup.Text = Convert.ToInt32(frameContent.Text.Substring(18, 2).Replace(" ", ""), 16) + "组" + Convert.ToInt32(frameContent.Text.Substring(21, 2).Replace(" ", ""), 16) + "号";
+                                        resGroup.Text = Convert.ToInt32(frameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" + Convert.ToInt32(frameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
                                     }
                                     catch
                                     {
@@ -922,7 +932,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 数据类型
                                     try
                                     {
-                                        string frameContentFunctionData = frameContent.Text.Substring(24, 5).Replace(" ", "");
+                                        string frameContentFunctionData = frameContent.Substring(24, 5).Replace(" ", "");
                                         int intFrameContentFunctionData = Convert.ToInt32(frameContentFunctionData, 16);
                                         // 1  0x0000 常规数据
                                         // 2  ……
@@ -1002,7 +1012,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 通信效率
                                 try
                                 {
-                                    resSucRate.Text = Convert.ToInt32(frameContent.Text.Substring(30, 2), 16).ToString() + "%";
+                                    resSucRate.Text = Convert.ToInt32(frameContent.Substring(30, 2), 16).ToString() + "%";
                                 }
                                 catch
                                 {
@@ -1014,7 +1024,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 电池电压
                                 try
                                 {
-                                    resBatVol.Text = Convert.ToInt32(frameContent.Text.Substring(33, 2), 16) + "%";
+                                    resBatVol.Text = Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
                                 }
                                 catch
                                 {
@@ -1026,7 +1036,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 休眠时间
                                 try
                                 {
-                                    resSleepTime.Text = Convert.ToInt32(frameContent.Text.Substring(36, 5).Replace(" ", ""), 16) + "秒";
+                                    resSleepTime.Text = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16) + "秒";
                                 }
                                 catch
                                 {
@@ -1038,7 +1048,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 仪表状态
                                 try
                                 {
-                                    string frameStatue = frameContent.Text.Substring(42, 5).Replace(" ", "");
+                                    string frameStatue = frameContent.Substring(42, 5).Replace(" ", "");
                                     string binFrameStatue = Convert.ToString(Convert.ToInt32(frameStatue, 16), 2).PadLeft(8, '0');
                                     if (Convert.ToInt32(binFrameStatue.Replace(" ", ""), 2) != 0)
                                     {
@@ -1093,7 +1103,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 运行时间
                                 try
                                 {
-                                    resTime.Text = Convert.ToInt32(frameContent.Text.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
+                                    resTime.Text = Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
                                 }
                                 catch
                                 {
@@ -1106,12 +1116,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
 
-                                    string frameresData = frameContent.Text.Substring(54, 5).Replace(" ", "").TrimStart('0');
-                                    resData.Text = Convert.ToInt32(frameresData, 16) + "MPa";
+                                    //string frameresData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
+                                    //resData.Text = Convert.ToInt32(frameresData, 16) + "MPa";
                                     // 十六进制字符串转换为浮点数字符串
-                                    //string frameresData = frameContent.Text.Substring(48, 11).Replace(" ", "");
-                                    //double flFrameData = HexStrToFloat(frameresData);
-                                    //resData.Text = flFrameData.ToString();
+                                    string frameresData = frameContent.Substring(54, 5).Replace(" ", "");
+                                    double flFrameData = HexStrToFloat(frameresData);
+                                    resData.Text = flFrameData.ToString() + "MPa";
                                 }
                                 catch
                                 {
@@ -1482,22 +1492,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             }
             return flData;
         }
-        /// <summary>
-        /// 文本解析面板清空
-        /// </summary>
-        private void ParseTextClear()
-        {
-            // 清空文本解析面板
-            frameHeader.Clear(); frameLength.Clear(); frameCommand.Clear();
-            frameAddress.Clear(); frameContent.Clear(); frameCRC.Clear();
-            // 将前景色改为黑色
-            frameHeader.Foreground = new SolidColorBrush(Colors.Black);
-            frameLength.Foreground = new SolidColorBrush(Colors.Black);
-            frameCommand.Foreground = new SolidColorBrush(Colors.Black);
-            frameAddress.Foreground = new SolidColorBrush(Colors.Black);
-            frameContent.Foreground = new SolidColorBrush(Colors.Black);
-            frameCRC.Foreground = new SolidColorBrush(Colors.Black);
-        }
+
         /// <summary>
         /// 仪表参数解析面板清空
         /// </summary>
@@ -1588,17 +1583,17 @@ namespace PDS800_WirelessTransmitter_Calibration
         private void ParameterAcquisition(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
         {
             // 帧头
-            strHeader = frameHeader.Text;
+            strHeader = frameHeader;
             // 发送命令域
             strCommand = "44 5F";
             // 发送地址
-            strAddress = frameAddress.Text;
+            strAddress = frameAddress;
             // 协议和厂商号为数据内容前五位
-            strProtocolVendor = frameContent.Text.Substring(0, 5);
+            strProtocolVendor = frameContent.Substring(0, 5);
             // 手操器
             strHandler = "1F 10";
             // 组号表号
-            strGroup = frameContent.Text.Substring(18, 5);
+            strGroup = frameContent.Substring(18, 5);
             // 数据类型
             strFunctionData = "00 80";
         }
