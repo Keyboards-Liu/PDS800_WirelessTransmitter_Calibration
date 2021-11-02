@@ -36,30 +36,30 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         // 变量定义
         // 日期
-        public string DateStr { get; set; }
+        private string DateStr { get; set; }
         // 时刻
-        public string TimeStr { get; set; }
+        private string TimeStr { get; set; }
         //// 发送和接收队列
-        //public static Queue receiveData = new Queue();
-        //public static Queue sendData = new Queue();
+        //private static Queue receiveData = new Queue();
+        //private static Queue sendData = new Queue();
         // 发送和接收字节数
-        public static uint receiveBytesCount = 0;
-        public static uint sendBytesCount = 0;
+        private static uint receiveBytesCount = 0;
+        private static uint sendBytesCount = 0;
         // 发送和接收次数
-        public static uint receiveCount = 0;
-        public static uint sendCount = 0;
+        private static uint receiveCount = 0;
+        private static uint sendCount = 0;
         // 帧头
-        public string frameHeader;
+        private static string frameHeader;
         // 长度域
-        public string frameLength;
+        private static string frameLength;
         // 命令域
-        public string frameCommand;
+        private static string frameCommand;
         // 数据地址域
-        public string frameAddress;
+        private static string frameAddress;
         // 数据内容域
-        public string frameContent;
+        private static string frameContent;
         // 校验码
-        public string frameCRC;
+        private static string frameCRC;
         /// <summary>
         /// 关闭窗口
         /// </summary>
@@ -67,6 +67,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="e"></param>        
         private void WindowClosed(object sender, ExecutedRoutedEventArgs e)
         {
+
         }
 
         #endregion
@@ -269,6 +270,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         public void ReceiveData(object sender, SerialDataReceivedEventArgs e)
         {
             Thread.Sleep(70);
+            receiveCount++;
             // Console.WriteLine("接收" + receiveCount + "次");
             // 读取缓冲区内所有字节
             byte[] receiveBuffer = new byte[serialPort.BytesToRead];
@@ -277,51 +279,63 @@ namespace PDS800_WirelessTransmitter_Calibration
             string receiveText = BytestoHexStr(receiveBuffer);
             // Console.WriteLine(receiveText);
             // 传参 (Invoke方法暂停工作线程, BeginInvoke方法不暂停)
-            switch (receiveText.Substring(0, 2))
+            if (receiveText.Length >= 2)
             {
-                case "FE":
+                try
+                {
+                    switch (receiveText.Substring(0, 2))
                     {
-                        if (((receiveText.Length + 1) / 3) == 27)
-                        {
-                            statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
+                        case "FE":
                             {
-                                ShowReceiveData(receiveText);
-                                ShowParseText(receiveText);
-                                ShowParseParameter(receiveText);
-                            }));
-                        }
-                        else if (((receiveText.Length + 1) / 3) != 27 && receiveText.Replace(" ", "") != "")
-                        {
-                            statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
+                                if (((receiveText.Length + 1) / 3) == 27)
+                                {
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
+                                    {
+                                        ShowReceiveData(receiveText);
+                                        ShowParseText(receiveText);
+                                        ShowParseParameter(receiveText);
+                                    }));
+                                }
+                                else if (((receiveText.Length + 1) / 3) != 27 && receiveText.Replace(" ", "") != "")
+                                {
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
+                                    {
+                                        ShowReceiveData(receiveText);
+                                    }));
+                                }
+                            }
+                            break;
+                        case "7E":
                             {
-                                ShowReceiveData(receiveText);
-                            }));
-                        }
+                                if (((receiveText.Length + 1) / 3) == 42)
+                                {
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
+                                    {
+                                        ShowReceiveData(receiveText);
+                                        ShowParseText(receiveText);
+                                        ShowParseParameter(receiveText);
+                                    }));
+                                }
+                                else if (((receiveText.Length + 1) / 3) != 42 && receiveText.Replace(" ", "") != "")
+                                {
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
+                                    {
+                                        ShowReceiveData(receiveText);
+                                    }));
+                                }
+                            }
+                            break;
+                        default:
+                            break;
                     }
-                    break;
-                case "7E":
-                    {
-                        if (((receiveText.Length + 1) / 3) == 42)
-                        {
-                            statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
-                            {
-                                ShowReceiveData(receiveText);
-                                ShowParseText(receiveText);
-                                ShowParseParameter(receiveText);
-                            }));
-                        }
-                        else if (((receiveText.Length + 1) / 3) != 42 && receiveText.Replace(" ", "") != "")
-                        {
-                            statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
-                            {
-                                ShowReceiveData(receiveText);
-                            }));
-                        }
-                    }
-                    break;
-                default:
-                    break;
+
+                }
+                catch
+                {
+
+                }
             }
+
 
         }
         public static void PrintValues(IEnumerable myCollection)
@@ -420,37 +434,37 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 仪表参数解析面板写入
             try
             {
-                // 字符串校验
-                string j = "";
-                string[] hexvalue = receiveText.Trim().Split(' ');
-                // 求字符串异或值
-                foreach (string hex in hexvalue) j = HexStrXor(j, hex);
-                //if (j == frameHeader)
-                if (true)
+                switch (receiveText.Substring(0, 2))
                 {
-                    resCRC.Text = "通过";
-                    switch (receiveText.Substring(0, 2))
-                    {
-                        case "FE":
+                    case "FE":
+                        {
+                            //字符串校验
+                            string j = "";
+                            string[] hexvalue = receiveText.Trim().Split(' ');
+                            // 求字符串异或值
+                            foreach (string hex in hexvalue) j = HexStrXor(j, hex);
+                            if (j == frameHeader)
                             {
+                                resCRC.Text = "通过";
+                                // 校验成功写入其他解析参数
                                 // 无线仪表数据域帧头
                                 {
                                     // 通信协议
                                     try
                                     {
                                         // 1 0x0001 ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）
-                                        string frameProtocol = frameContent.Substring(0, 5).Replace(" ", "");
-                                        int intFrameProtocol = Convert.ToInt32(frameProtocol, 16);
-                                        switch (intFrameProtocol)
-                                        {
-                                            case 0x0001:
-                                                resProtocol.Text = "ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）";
-                                                break;
-                                            default:
-                                                resProtocol.Text = "未知";
-                                                resProtocol.Foreground = new SolidColorBrush(Colors.Red);
-                                                break;
-                                        }
+                                        //string frameProtocol = frameContent.Substring(0, 5).Replace(" ", "");
+                                        //int intFrameProtocol = Convert.ToInt32(frameProtocol, 16);
+                                        //switch (intFrameProtocol)
+                                        //{
+                                        //    case 0x0001:
+                                        resProtocol.Text = "ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）";
+                                        //        break;
+                                        //    default:
+                                        //        resProtocol.Text = "未知";
+                                        //        resProtocol.Foreground = new SolidColorBrush(Colors.Red);
+                                        //        break;
+                                        //}
                                     }
                                     catch
                                     {
@@ -780,27 +794,46 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     return;
                                 }
                             }
-                            break;
-                        case "7E":
+                            else
                             {
+                                resCRC.Text = "未通过";
+                                resCRC.Foreground = new SolidColorBrush(Colors.Red);
+                            }
+
+                        }
+                        break;
+                    case "7E":
+                        {
+                            //字符串校验
+                            int j = 0;
+                            string txt = receiveText.Trim();
+                            string[] hexvalue = txt.Remove(0, 9).Remove(txt.Length - 12, 3).Split(' ');
+                            // 0x00 - 字符串求和
+                            foreach (string hex in hexvalue) j = j + Convert.ToInt32(hex, 16);
+                            string hexj = (0xFF - Convert.ToInt32((j.ToString("X").Substring(j.ToString("X").Length - 2, 2)), 16)).ToString("X");
+                            if (hexj == frameCRC)
+                            //if (j == frameHeader)
+                            {
+                                resCRC.Text = "通过";
+                                // 校验成功写入其他解析参数
                                 // 无线仪表数据域帧头
                                 {
                                     // 通信协议
                                     try
                                     {
                                         // 1 0x0001 ZigBee（Digi International）
-                                        string frameProtocol = frameContent.Substring(0, 5).Replace(" ", "");
-                                        int intFrameProtocol = Convert.ToInt32(frameProtocol, 16);
-                                        switch (intFrameProtocol)
-                                        {
-                                            case 0x0001:
-                                                resProtocol.Text = "ZigBee（Digi International）";
-                                                break;
-                                            default:
-                                                resProtocol.Text = "未知";
-                                                resProtocol.Foreground = new SolidColorBrush(Colors.Red);
-                                                break;
-                                        }
+                                        //string frameProtocol = frameContent.Substring(0, 5).Replace(" ", "");
+                                        //int intFrameProtocol = Convert.ToInt32(frameProtocol, 16);
+                                        //switch (intFrameProtocol)
+                                        //{
+                                        //    case 0x0001:
+                                        resProtocol.Text = "ZigBee（Digi International）";
+                                        //        break;
+                                        //    default:
+                                        //        resProtocol.Text = "未知";
+                                        //        resProtocol.Foreground = new SolidColorBrush(Colors.Red);
+                                        //        break;
+                                        //}
                                     }
                                     catch
                                     {
@@ -1119,8 +1152,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     //string frameresData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
                                     //resData.Text = Convert.ToInt32(frameresData, 16) + "MPa";
                                     // 十六进制字符串转换为浮点数字符串
-                                    string frameresData = frameContent.Substring(54, 5).Replace(" ", "");
-                                    double flFrameData = HexStrToFloat(frameresData);
+                                    string frameresData = frameContent.Substring(48, 11).Replace(" ", "");
+                                    float flFrameData = HexStrToFloat(frameresData);
                                     resData.Text = flFrameData.ToString() + "MPa";
                                 }
                                 catch
@@ -1131,17 +1164,18 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     return;
                                 }
                             }
-                            break;
-                        default:
-                            resProtocol.Text = "未知";
-                            resAddress.Foreground = new SolidColorBrush(Colors.Red);
-                            break;
-                    }
-                }
-                else
-                {
-                    resCRC.Text = "未通过";
-                    resCRC.Foreground = new SolidColorBrush(Colors.Red);
+                            else
+                            {
+                                resCRC.Text = "未通过";
+                                resCRC.Foreground = new SolidColorBrush(Colors.Red);
+                            }
+
+                        }
+                        break;
+                    default:
+                        resProtocol.Text = "未知";
+                        resAddress.Foreground = new SolidColorBrush(Colors.Red);
+                        break;
                 }
             }
             catch
@@ -1155,6 +1189,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
 
         }
+
         /// <summary>
         /// 接收窗口清空按钮
         /// </summary>
@@ -1463,34 +1498,64 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// </summary>
         /// <param name="HexStr"></param>
         /// <returns></returns>
-        private static double HexStrToFloat(string HexStr)
+        private static float HexStrToFloat(string HexStr)
         {
-            if (HexStr == null)
+            //if (HexStr == null)
+            //{
+            //    throw new ArgumentNullException(nameof(HexStr));
+            //}
+            //string binData = Convert.ToString(Convert.ToInt32(HexStr, 16), 2).PadLeft(32, '0');
+            //int binData_Sign = (1 - Convert.ToInt32(binData.Substring(0, 1), 2) * 2);
+            //int binData_Exp = Convert.ToInt32(binData.Substring(1, 8), 2) - 127;
+            //string binData_Mant = "1" + binData.Substring(9, 23);
+            //if (binData_Exp >= 0)
+            //{
+            //    binData_Mant = binData_Mant.Insert(binData_Exp + 1, ".");
+            //}
+            //else binData_Mant = binData_Mant.PadLeft(binData_Mant.Length - binData_Sign, '0').Insert(1, ".");
+            //string[] binDataStr = binData_Mant.Split('.');
+            //double flData = 0.0;
+            //for (int i = 0; i < binDataStr[0].Length; i++)
+            //{
+            //    double EXP = Math.Pow(2, binDataStr[0].Length - i - 1);
+            //    flData += Convert.ToInt32(binDataStr[0].Substring(i, 1)) * EXP;
+            //}
+            //for (int i = 0; i < binDataStr[1].Length; i++)
+            //{
+            //    double EXP = Math.Pow(2, -i - 1);
+            //    flData += Convert.ToInt32(binDataStr[1].Substring(i, 1)) * EXP;
+            //}
+            //return flData;
+            HexStr = HexStr.Replace(" ", "");
+            if (HexStr.Length != 8)
             {
                 throw new ArgumentNullException(nameof(HexStr));
             }
-            string binData = Convert.ToString(Convert.ToInt32(HexStr, 16), 2).PadLeft(32, '0');
-            int binData_Sign = (1 - Convert.ToInt32(binData.Substring(0, 1), 2) * 2);
-            int binData_Exp = Convert.ToInt32(binData.Substring(1, 8), 2) - 127;
-            string binData_Mant = "1" + binData.Substring(9, 23);
-            if (binData_Exp >= 0)
+            int data1 = Convert.ToInt32(HexStr.Substring(0, 2), 16);
+            int data2 = Convert.ToInt32(HexStr.Substring(2, 2), 16);
+            int data3 = Convert.ToInt32(HexStr.Substring(4, 2), 16);
+            int data4 = Convert.ToInt32(HexStr.Substring(6, 2), 16);
+
+            int data = data1 << 24 | data2 << 16 | data3 << 8 | data4;
+
+            int nSign;
+            if ((data & 0x80000000) > 0)
             {
-                binData_Mant = binData_Mant.Insert(binData_Exp + 1, ".");
+                nSign = -1;
             }
-            else binData_Mant = binData_Mant.PadLeft(binData_Mant.Length - binData_Sign, '0').Insert(1, ".");
-            string[] binDataStr = binData_Mant.Split('.');
-            double flData = 0.0;
-            for (int i = 0; i < binDataStr[0].Length; i++)
+            else
             {
-                double EXP = Math.Pow(2, binDataStr[0].Length - i - 1);
-                flData += Convert.ToInt32(binDataStr[0].Substring(i, 1)) * EXP;
+                nSign = 1;
             }
-            for (int i = 0; i < binDataStr[1].Length; i++)
-            {
-                double EXP = Math.Pow(2, -i - 1);
-                flData += Convert.ToInt32(binDataStr[1].Substring(i, 1)) * EXP;
-            }
-            return flData;
+            int nExp = data & (0x7F800000);
+            nExp = nExp >> 23;
+            float nMantissa = data & (0x7FFFFF);
+
+            if (nMantissa != 0)
+                nMantissa = 1 + nMantissa / 8388608;
+
+            float value = nSign * nMantissa * (2 << (nExp - 128));
+            return value;
         }
 
         /// <summary>
@@ -1742,7 +1807,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
             return str;
         }
-    
+
 
         private string DescribeCalibration_Text()
         {

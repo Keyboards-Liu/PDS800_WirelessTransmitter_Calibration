@@ -40,7 +40,7 @@
         </Grid.ColumnDefinitions>
         <Grid Grid.Column="0" Grid.Row="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="150*" MinHeight="150"/>
+                <RowDefinition Height="150*" MinHeight="135"/>
                 <RowDefinition Height="60*" MinHeight="60"/>
                 <RowDefinition Height="90*" MinHeight="90"/>
             </Grid.RowDefinitions>
@@ -313,8 +313,8 @@
             <!--标定信息设置面板-->
 
                 <!--设备描述标定信息-->
-                <TabControl Grid.Row="2" Margin="5">
-                    <TabItem Header="描述标定" >
+            <TabControl Grid.Row="2" Margin="5" BorderBrush="Gray" >
+                <TabItem Header="描述标定" >
                     <ScrollViewer>
                         <WrapPanel VerticalAlignment="Center">
                             <DockPanel Margin="5,0">
