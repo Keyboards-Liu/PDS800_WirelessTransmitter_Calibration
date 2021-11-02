@@ -1154,7 +1154,18 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 十六进制字符串转换为浮点数字符串
                                     string frameresData = frameContent.Substring(48, 11).Replace(" ", "");
                                     float flFrameData = HexStrToFloat(frameresData);
-                                    resData.Text = flFrameData.ToString() + "MPa";
+                                    // 单位类型
+                                    string frameContentType = frameContent.Substring(12, 5).Replace(" ", "");
+                                    int intFrameContentType = Convert.ToInt32(frameContentType, 16);
+                                    string type = "";
+                                    switch (intFrameContentType)
+                                    {                                        
+                                        case 0x0002: type = "Pa"; break;
+                                        case 0x0003: type = "℃"; break;
+                                        default: type = ""; break;
+                                    }
+
+                                    resData.Text = flFrameData.ToString() + type;
                                 }
                                 catch
                                 {
