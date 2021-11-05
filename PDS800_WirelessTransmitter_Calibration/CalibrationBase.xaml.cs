@@ -808,7 +808,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                             int j = 0;
                             string txt = receiveText.Trim();
                             string[] hexvalue = txt.Remove(0, 9).Remove(txt.Length - 12, 3).Split(' ');
-                            // 0x00 - 字符串求和
+                            // 0xFF - 字符串求和
                             foreach (string hex in hexvalue) j = j + Convert.ToInt32(hex, 16);
                             string hexj = (0xFF - Convert.ToInt32((j.ToString("X").Substring(j.ToString("X").Length - 2, 2)), 16)).ToString("X");
                             if (hexj == frameCRC)
@@ -1672,7 +1672,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                         string strInner = strLength + " " + strContent;
                         // 计算异或校验码
-                        string strCRC = HexCRC(strInner);
+                        string strCRC = SumCRC(strInner);
                         // 合成返回值
                         str = strHeader + " " + strInner + " " + strCRC;
                     }
@@ -1684,7 +1684,10 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         }
 
-
+        private string SumCRC(string strInner)
+        {
+            throw new NotImplementedException();
+        }
 
         private void ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
         {
@@ -1709,7 +1712,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 帧头
             strHeader = "7E";
             // 发送命令域
-            strCommand = "91";
+            strCommand = "11";
             // 发送地址
             strAddress = frameAddress;
             // 协议和厂商号为数据内容前四位
