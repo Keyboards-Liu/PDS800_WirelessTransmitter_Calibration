@@ -38,5 +38,10 @@ namespace PDS800_WirelessTransmitter_Calibration
         {
 
         }
+
+        private void DataDisplay_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
