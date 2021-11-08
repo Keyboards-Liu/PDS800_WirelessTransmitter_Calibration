@@ -14,6 +14,7 @@ using System.Windows.Threading;
 using System.Data;
 using System.Data.SqlClient;
 using System.Collections;
+using PDS800_Wireless_Transmitter_Message_Analysis;
 
 namespace PDS800_WirelessTransmitter_Calibration
 {
@@ -221,6 +222,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                 statusTextBlock.Text = "串口已开启";
                 serialPortStatusEllipse.Fill = Brushes.Green;
                 turnOnButton.Content = "关闭串口";
+                // 设置超时
+                serialPort.ReadTimeout = 500;
+                serialPort.WriteTimeout = 500;
                 // 清空缓冲区
                 serialPort.DiscardInBuffer();
                 serialPort.DiscardOutBuffer();
@@ -439,17 +443,14 @@ namespace PDS800_WirelessTransmitter_Calibration
                     case "FE":
                         {
                             //字符串校验
-                            string j = "";
-                            string[] hexvalue = receiveText.Trim().Split(' ');
-                            // 求字符串异或值
-                            foreach (string hex in hexvalue) j = HexStrXor(j, hex);
-                            if (j == frameHeader)
+                            string j = CalCheckCode_FE(receiveText);
+                            if (j == frameCRC)
                             {
                                 resCRC.Text = "通过";
                                 // 校验成功写入其他解析参数
                                 // 无线仪表数据域帧头
                                 {
-                                    // 通信协议
+                                    // 通讯协议
                                     try
                                     {
                                         // 1 0x0001 ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）
@@ -541,7 +542,6 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         //    0x3001 无线拉线位移功图校准传感器
                                         switch (intFrameContentType)
                                         {
-
                                             case 0x0001: resType.Text = "无线一体化负荷"; break;
                                             case 0x0002: resType.Text = "无线压力"; break;
                                             case 0x0003: resType.Text = "无线温度"; break;
@@ -805,14 +805,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                     case "7E":
                         {
                             //字符串校验
-                            int j = 0;
-                            string txt = receiveText.Trim();
-                            string[] hexvalue = txt.Remove(0, 9).Remove(txt.Length - 12, 3).Split(' ');
-                            // 0xFF - 字符串求和
-                            foreach (string hex in hexvalue) j = j + Convert.ToInt32(hex, 16);
-                            string hexj = (0xFF - Convert.ToInt32((j.ToString("X").Substring(j.ToString("X").Length - 2, 2)), 16)).ToString("X");
+                            string hexj = CalCheckCode_7E(receiveText);
                             if (hexj == frameCRC)
-                            //if (j == frameHeader)
                             {
                                 resCRC.Text = "通过";
                                 // 校验成功写入其他解析参数
@@ -845,10 +839,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 网络地址
                                     try
                                     {
-                                        //string frameContentAddress = (frameAddress.Substring(3, 2) + frameAddress.Substring(0, 2)).Replace(" ", "");
-                                        //int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
-                                        //resAddress.Text = intFrameContentAddress.ToString();
-                                        resAddress.Text = frameAddress;
+                                        string frameContentAddress = (frameAddress.Substring(6, 2) + frameAddress.Substring(3, 2)).Replace(" ", "");
+                                        int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
+                                        resAddress.Text = intFrameContentAddress.ToString();
                                     }
                                     catch
                                     {
@@ -1159,7 +1152,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     int intFrameContentType = Convert.ToInt32(frameContentType, 16);
                                     string type = "";
                                     switch (intFrameContentType)
-                                    {                                        
+                                    {
                                         case 0x0002: type = "Pa"; break;
                                         case 0x0003: type = "℃"; break;
                                         default: type = ""; break;
@@ -1199,6 +1192,27 @@ namespace PDS800_WirelessTransmitter_Calibration
             //SqlConnection conn = new SqlConnection(strConn);
 
 
+        }
+
+        private static string CalCheckCode_7E(string receiveText)
+        {
+            int j = 0;
+            string txt = receiveText.Trim();
+            string[] hexvalue = txt.Remove(0, 9).Remove(txt.Length - 12).Split(' ');
+            // 0xFF - 字符串求和
+            foreach (string hex in hexvalue) j = j + Convert.ToInt32(hex, 16);
+            string hexj = (0xFF - Convert.ToInt32(j.ToString("X").Substring(j.ToString("X").Length - 2, 2), 16)).ToString("X");
+            return hexj;
+        }
+
+        private static string CalCheckCode_FE(string receiveText)
+        {
+            string j = "";
+            string txt = receiveText.Trim();
+            string[] hexvalue = txt.Remove(0, 3).Remove(txt.Length - 6).Split(' ');
+            // 求字符串异或值
+            foreach (string hex in hexvalue) j = HexStrXor(j, hex);
+            return j;
         }
 
         /// <summary>
@@ -1281,8 +1295,14 @@ namespace PDS800_WirelessTransmitter_Calibration
                 //    Console.Write(b.ToString("X2"));
                 //}
                 //Console.WriteLine("");
-
-                serialPort.Write(sendBuffer, 0, sendBuffer.Length);
+                try
+                {
+                    serialPort.Write(sendBuffer, 0, sendBuffer.Length);
+                }
+                catch
+                {
+                    statusTextBlock.Text = "串口异常";
+                }
                 // 更新发送数据计数
                 sendBytesCount += (uint)sendBuffer.Length;
                 statusSendByteTextBlock.Text = sendBytesCount.ToString();
@@ -1355,6 +1375,9 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 更新数据显示
             statusReceiveByteTextBlock.Text = receiveBytesCount.ToString();
             statusSendByteTextBlock.Text = sendBytesCount.ToString();
+            DataDisplay datadisplay = new DataDisplay();
+            datadisplay.Show();
+            datadisplay.Window_Loaded();
         }
         #endregion
 
@@ -1578,7 +1601,8 @@ namespace PDS800_WirelessTransmitter_Calibration
             resProtocol.Clear(); resAddress.Clear(); resVendor.Clear();
             resType.Clear(); resGroup.Clear(); resFunctionData.Clear();
             resSucRate.Clear(); resBatVol.Clear(); resSleepTime.Clear();
-            resStatue.Clear(); resData.Clear(); resCRC.Clear();
+            resStatue.Clear(); resData.Clear(); resTime.Clear();
+            resCRC.Clear();
             // 将前景色改为黑色
             resProtocol.Foreground = new SolidColorBrush(Colors.Black);
             resAddress.Foreground = new SolidColorBrush(Colors.Black);
@@ -1591,6 +1615,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             resSleepTime.Foreground = new SolidColorBrush(Colors.Black);
             resStatue.Foreground = new SolidColorBrush(Colors.Black);
             resData.Foreground = new SolidColorBrush(Colors.Black);
+            resTime.Foreground = new SolidColorBrush(Colors.Black);
             resCRC.Foreground = new SolidColorBrush(Colors.Black);
         }
         #endregion
@@ -1649,12 +1674,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                         string strHandlerContent = "F0";
                         // 合成数据域
                         string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域
+                        // 计算长度域（不包含命令域）
                         int intLength = (strContent.Length + 1) / 3;
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
                         string strInner = strLength + " " + strCommand + " " + strContent;
                         // 计算异或校验码
-                        string strCRC = HexCRC(strInner);
+                        string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
                         // 合成返回值
                         str = strHeader + " " + strInner + " " + strCRC;
                     }
@@ -1666,13 +1691,13 @@ namespace PDS800_WirelessTransmitter_Calibration
                         // 写操作数据区
                         string strHandlerContent = "F0";
                         // 合成数据域
-                        string strContent = strCommand + " " + frameAddress + " FF FE E8 E8 00 11 18 57 01 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域
+                        string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域（包含命令域）
                         int intLength = (strContent.Length + 1) / 3;
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                         string strInner = strLength + " " + strContent;
                         // 计算异或校验码
-                        string strCRC = SumCRC(strInner);
+                        string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
                         // 合成返回值
                         str = strHeader + " " + strInner + " " + strCRC;
                     }
@@ -1682,11 +1707,6 @@ namespace PDS800_WirelessTransmitter_Calibration
             }
             return str;
 
-        }
-
-        private string SumCRC(string strInner)
-        {
-            throw new NotImplementedException();
         }
 
         private void ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
@@ -1712,15 +1732,15 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 帧头
             strHeader = "7E";
             // 发送命令域
-            strCommand = "11";
+            strCommand = "11 01";
             // 发送地址
             strAddress = frameAddress;
-            // 协议和厂商号为数据内容前四位
-            strProtocolVendor = frameContent.Substring(0, 11);
+            // 协议和厂商号
+            strProtocolVendor = frameContent.Substring(27, 11);
             // 仪表类型：手操器
             strHandler = "1F 10";
             // 组号表号
-            strGroup = frameContent.Substring(18, 5);
+            strGroup = frameContent.Substring(45, 5);
             // 功能码 / 数据类型
             strFunctionData = "00 80";
         }
