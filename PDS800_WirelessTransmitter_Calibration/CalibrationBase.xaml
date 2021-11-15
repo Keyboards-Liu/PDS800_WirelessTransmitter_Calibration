@@ -3,6 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:d3="http://research.microsoft.com/DynamicDataDisplay/1.0"
+
              xmlns:local="clr-namespace:PDS800_WirelessTransmitter_Calibration"
              mc:Ignorable="d" 
              
@@ -257,7 +259,7 @@
             <GroupBox Grid.Row="1" Header="仪表参数解析面板" Margin="5" BorderBrush="Gray">
                 <WrapPanel VerticalAlignment="Center">
                     <DockPanel Margin="5,0" >
-                        <Label Content="通信协议" VerticalAlignment="Center" Width="80"/>
+                        <Label Content="通信协议" VerticalAlignment="Center" Width="80" />
                         <TextBox x:Name="resProtocol" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
                     <DockPanel Margin="5,0">
@@ -362,13 +364,34 @@
                                 <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="命令号（1byte）" Width="120"/>
                                 <TextBox x:Name="calibrationCommandNumberTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <DockPanel Margin="5,0">
+                        <DockPanel Margin="5,0">
                                 <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="单位（1byte）" Width="120"/>
                                 <TextBox x:Name="calibrationUnitTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
                             </DockPanel>                            
                         </WrapPanel>
                     </TabItem>
-                </TabControl>
+                <TabItem Header="实时数据">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="dataUsageText" Margin="10,10,0,0"
+                       FontSize="15"/>
+                        </StackPanel>
+                        <d3:ChartPlotter x:Name="plotter" Margin="10,10,20,10" Grid.Row="1">
+                            <d3:ChartPlotter.VerticalAxis>
+                                <d3:VerticalIntegerAxis />
+                            </d3:ChartPlotter.VerticalAxis>
+
+                            <d3:ChartPlotter.HorizontalAxis>
+                                <d3:HorizontalIntegerAxis />
+                            </d3:ChartPlotter.HorizontalAxis>
+
+                        </d3:ChartPlotter>
+                    </Grid>
+                </TabItem>
+            </TabControl>
                 <!--发送文本面板-->
                 <GroupBox Grid.Row="3" Grid.ColumnSpan="2" Header="发送文本面板" Margin="5" BorderBrush="Gray">
                     <ScrollViewer Margin="5" BorderBrush="Gray">

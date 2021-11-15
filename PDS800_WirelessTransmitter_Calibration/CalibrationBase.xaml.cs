@@ -14,7 +14,9 @@ using System.Windows.Threading;
 using System.Data;
 using System.Data.SqlClient;
 using System.Collections;
-using PDS800_Wireless_Transmitter_Message_Analysis;
+using System.Diagnostics;
+using Microsoft.Research.DynamicDataDisplay.DataSources;
+using Microsoft.Research.DynamicDataDisplay;
 
 namespace PDS800_WirelessTransmitter_Calibration
 {
@@ -61,6 +63,8 @@ namespace PDS800_WirelessTransmitter_Calibration
         private static string frameContent;
         // 校验码
         private static string frameCRC;
+        // 实时数据
+        public double realTimeData = 0.0;
         /// <summary>
         /// 关闭窗口
         /// </summary>
@@ -97,6 +101,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             autoSendTimer.Interval = new TimeSpan(0, 0, 0, 0, Convert.ToInt32(autoSendCycleTextBox.Text));
             // 设置状态栏提示
             statusTextBlock.Text = "准备就绪";
+            Window_Loaded();
         }
         /// <summary>
         /// 显示当前时间
@@ -785,6 +790,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     //string frameresData = frameContent.Substring(48, 11).Replace(" ", "");
                                     //double flFrameData = HexStrToFloat(frameresData);
                                     //resData.Text = flFrameData.ToString();
+                                    realTimeData = Convert.ToDouble(frameresData);
+
                                 }
                                 catch
                                 {
@@ -1159,6 +1166,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     }
 
                                     resData.Text = flFrameData.ToString() + type;
+                                    realTimeData = Convert.ToDouble(frameresData);
+
                                 }
                                 catch
                                 {
@@ -1181,6 +1190,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                         resAddress.Foreground = new SolidColorBrush(Colors.Red);
                         break;
                 }
+
             }
             catch
             {
@@ -1188,6 +1198,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 statusTextBlock.Text = "参数解析出错！";
                 turnOnButton.IsChecked = false;
             }
+            // 更新数据曲线
             //string strConn = @"Data Source=.;Initial Catalog=Test; integrated security=True;";
             //SqlConnection conn = new SqlConnection(strConn);
 
@@ -1375,9 +1386,6 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 更新数据显示
             statusReceiveByteTextBlock.Text = receiveBytesCount.ToString();
             statusSendByteTextBlock.Text = sendBytesCount.ToString();
-            DataDisplay datadisplay = new DataDisplay();
-            datadisplay.Show();
-            datadisplay.Window_Loaded();
         }
         #endregion
 
@@ -1620,6 +1628,59 @@ namespace PDS800_WirelessTransmitter_Calibration
         }
         #endregion
 
+        private string RegularDataConfirmationFrame()
+        {
+            string str = "";
+            switch (frameHeader)
+            {
+                case "FE":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        // 写操作数据区
+                        string strHandlerContent = "00 08";
+                        // 合成数据域
+                        string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域（不包含命令域）
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        string strInner = strLength + " " + strCommand + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                case "7E":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                        // 写操作数据区
+                        // 功能码 / 数据类型
+                        string strFunctionData = "00 80";
+                        string strHandlerContent = "00 08";
+                        // 合成数据域
+                        string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域（包含命令域）
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                        string strInner = strLength + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            return str;
+        }
+
+
+
+
         /// <summary>
         /// 建立连接处理程序
         /// </summary>
@@ -1654,13 +1715,10 @@ namespace PDS800_WirelessTransmitter_Calibration
             }
             else statusTextBlock.Text = "请先解析仪表参数！";
         }
-
-        private void EstablishConnectionButton_Unchecked(object sender, RoutedEventArgs e)
-        {
-            connectionStatusEllipse.Fill = Brushes.Gray;
-            establishConnectionButton.Content = "建立连接";
-        }
-
+        /// <summary>
+        /// 生成建立连接报文
+        /// </summary>
+        /// <returns></returns>
         private string EstablishBuild_Text()
         {
             string str = "";
@@ -1687,8 +1745,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                 case "7E":
                     {
                         // 获取所需解析数据
-                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
                         // 写操作数据区
+                        // 功能码 / 数据类型
+                        string strFunctionData = "00 80";
                         string strHandlerContent = "F0";
                         // 合成数据域
                         string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
@@ -1708,42 +1768,21 @@ namespace PDS800_WirelessTransmitter_Calibration
             return str;
 
         }
-
-        private void ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
+        /// <summary>
+        /// 断开连接处理程序
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void EstablishConnectionButton_Unchecked(object sender, RoutedEventArgs e)
         {
-            // 获取所需解析数据
-            // 帧头
-            strHeader = "FE";
-            // 发送命令域
-            strCommand = "44 5F";
-            // 发送地址
-            strAddress = frameAddress;
-            // 协议和厂商号为数据内容前四位
-            strProtocolVendor = frameContent.Substring(0, 11);
-            // 仪表类型：手操器
-            strHandler = "1F 10";
-            // 组号表号
-            strGroup = frameContent.Substring(18, 5);
-            // 功能码 / 数据类型
-            strFunctionData = "00 80";
+            connectionStatusEllipse.Fill = Brushes.Gray;
+            establishConnectionButton.Content = "建立连接";
         }
-        private void ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
-        {
-            // 帧头
-            strHeader = "7E";
-            // 发送命令域
-            strCommand = "11 01";
-            // 发送地址
-            strAddress = frameAddress;
-            // 协议和厂商号
-            strProtocolVendor = frameContent.Substring(27, 11);
-            // 仪表类型：手操器
-            strHandler = "1F 10";
-            // 组号表号
-            strGroup = frameContent.Substring(45, 5);
-            // 功能码 / 数据类型
-            strFunctionData = "00 80";
-        }
+        /// <summary>
+        /// 描述标定处理程序
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void DescriptionCalibrationButton_Click(object sender, RoutedEventArgs e)
         {
             // 判断仪表参数是否解析完成和是否处于连接状态
@@ -1769,80 +1808,10 @@ namespace PDS800_WirelessTransmitter_Calibration
             }
             else statusTextBlock.Text = "请先建立连接！";
         }
-
-        private void ParameterCalibrationButton_Click(object sender, RoutedEventArgs e)
-        {
-            // 判断仪表参数是否解析完成和是否处于连接状态
-            if (resCRC.Text == "通过" && connectionStatusEllipse.Fill == Brushes.Green)
-            {
-                try
-                {
-                    // 发送下行报文建立连接 
-                    // 生成16进制字符串
-                    sendTextBox.Text = ParameterCalibration_Text();
-                    // 标定连接发送
-                    // SerialPortSend();
-                }
-                catch
-                {
-                    // 异常时显示提示文字
-                    statusTextBlock.Text = "描述标定出错！";
-                }
-            }
-            else statusTextBlock.Text = "请先建立连接！";
-        }
-
-        private string ParameterCalibration_Text()
-        {
-            string str = "";
-            switch (frameHeader)
-            {
-                case "FE":
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
-                        // 获取设备描述标定信息
-                        // 写操作数据区
-                        string strHandlerContent = "F2 " + calibrationCommandNumberTextBox.Text.Trim() + " " + calibrationUnitTextBox.Text.Trim();
-                        // 合成数据域
-                        string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-                        string strInner = strLength + " " + strCommand + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = HexCRC(strInner);
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
-                    }
-                    break;
-                case "7E":
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
-                        // 获取设备描述标定信息
-                        // 写操作数据区
-                        string strHandlerContent = "F2 " + calibrationCommandNumberTextBox.Text.Trim() + " " + calibrationUnitTextBox.Text.Trim();
-                        // 合成数据域
-                        string strContent = strCommand + " " + frameAddress + " FF FE E8 E8 00 11 18 57 01 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        string strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = HexCRC(strInner);
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
-                    }
-                    break;
-                default:
-                    break;
-            }
-
-            return str;
-        }
-
-
+        /// <summary>
+        /// 生成描述标定数据
+        /// </summary>
+        /// <returns></returns>
         private string DescribeCalibration_Text()
         {
             string str = "";
@@ -1870,8 +1839,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                 case "7E":
                     {
                         // 获取所需解析数据
-                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
                         // 获取设备描述标定信息
+                        // 功能码 / 数据类型
+                        string strFunctionData = "00 80";
                         // 写操作数据区
                         string strHandlerContent = "F1 " + calibrationInstrumentModelTextBox.Text.Trim() + " " + calibrationSerialNumberTextBox.Text.Trim() + " " + calibrationIPRatingTextBox.Text.Trim() + " " + calibrationExplosionProofLevelTextBox.Text.Trim() + " " + calibrationInstructionsTextBox.Text.Trim();
                         // 合成数据域
@@ -1892,7 +1863,93 @@ namespace PDS800_WirelessTransmitter_Calibration
 
             return str;
         }
+        /// <summary>
+        /// 参数标定处理程序
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void ParameterCalibrationButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 判断仪表参数是否解析完成和是否处于连接状态
+            if (resCRC.Text == "通过" && connectionStatusEllipse.Fill == Brushes.Green)
+            {
+                try
+                {
+                    // 发送下行报文建立连接 
+                    // 生成16进制字符串
+                    sendTextBox.Text = ParameterCalibration_Text();
+                    // 标定连接发送
+                    // SerialPortSend();
+                }
+                catch
+                {
+                    // 异常时显示提示文字
+                    statusTextBlock.Text = "描述标定出错！";
+                }
+            }
+            else statusTextBlock.Text = "请先建立连接！";
+        }
+        /// <summary>
+        /// 生成参数标定数据
+        /// </summary>
+        /// <returns></returns>
+        private string ParameterCalibration_Text()
+        {
+            string str = "";
+            switch (frameHeader)
+            {
+                case "FE":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        // 获取设备描述标定信息
+                        // 写操作数据区
+                        string strHandlerContent = "F2 " + calibrationCommandNumberTextBox.Text.Trim() + " " + calibrationUnitTextBox.Text.Trim();
+                        // 合成数据域
+                        string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        string strInner = strLength + " " + strCommand + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = HexCRC(strInner);
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                case "7E":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                        // 获取设备描述标定信息
+                        // 功能码 / 数据类型
+                        string strFunctionData = "00 80";
+                        // 写操作数据区
+                        string strHandlerContent = "F2 " + calibrationCommandNumberTextBox.Text.Trim() + " " + calibrationUnitTextBox.Text.Trim();
+                        // 合成数据域
+                        string strContent = strCommand + " " + frameAddress + " FF FE E8 E8 00 11 18 57 01 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                        string strInner = strLength + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = HexCRC(strInner);
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                default:
+                    break;
+            }
 
+            return str;
+        }
+
+        /// <summary>
+        /// 标定栏的数据预览
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void CalibrationInstrumentModelTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             // 将光标移至文字末尾
@@ -1908,7 +1965,6 @@ namespace PDS800_WirelessTransmitter_Calibration
             calibrationInstrumentModelTextBox.SelectionStart = calibrationInstrumentModelTextBox.Text.Length;
             e.Handled = true;
         }
-
         private void CalibrationSerialNumberTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             // 将光标移至文字末尾
@@ -1924,7 +1980,6 @@ namespace PDS800_WirelessTransmitter_Calibration
             calibrationSerialNumberTextBox.SelectionStart = calibrationSerialNumberTextBox.Text.Length;
             e.Handled = true;
         }
-
         private void CalibrationIPRatingTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             // 将光标移至文字末尾
@@ -1940,7 +1995,6 @@ namespace PDS800_WirelessTransmitter_Calibration
             calibrationIPRatingTextBox.SelectionStart = calibrationIPRatingTextBox.Text.Length;
             e.Handled = true;
         }
-
         private void CalibrationExplosionProofLevelTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             // 将光标移至文字末尾
@@ -1956,7 +2010,6 @@ namespace PDS800_WirelessTransmitter_Calibration
             calibrationExplosionProofLevelTextBox.SelectionStart = calibrationExplosionProofLevelTextBox.Text.Length;
             e.Handled = true;
         }
-
         private void CalibrationInstructionsTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             // 将光标移至文字末尾
@@ -1972,7 +2025,6 @@ namespace PDS800_WirelessTransmitter_Calibration
             calibrationInstructionsTextBox.SelectionStart = calibrationInstructionsTextBox.Text.Length;
             e.Handled = true;
         }
-
         private void CalibrationParametersComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (calibrationParametersComboBox.Text.Length >= 4)
@@ -1982,5 +2034,122 @@ namespace PDS800_WirelessTransmitter_Calibration
         }
 
 
+        /// <summary>
+        /// FE标定公用数据
+        /// </summary>
+        /// <param name="strHeader"></param>
+        /// <param name="strCommand"></param>
+        /// <param name="strAddress"></param>
+        /// <param name="strProtocolVendor"></param>
+        /// <param name="strHandler"></param>
+        /// <param name="strGroup"></param>
+        /// <param name="strFunctionData"></param>        
+        private void ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
+        {
+            // 获取所需解析数据
+            // 帧头
+            strHeader = "FE";
+            // 发送命令域
+            strCommand = "44 5F";
+            // 发送地址
+            strAddress = frameAddress;
+            // 协议和厂商号为数据内容前四位
+            strProtocolVendor = frameContent.Substring(0, 11);
+            // 仪表类型：手操器
+            strHandler = "1F 10";
+            // 组号表号
+            strGroup = frameContent.Substring(18, 5);
+            // 功能码 / 数据类型
+            strFunctionData = "00 80";
+        }
+        /// <summary>
+        /// 7E标定公用数据
+        /// </summary>
+        /// <param name="strHeader"></param>
+        /// <param name="strCommand"></param>
+        /// <param name="strAddress"></param>
+        /// <param name="strProtocolVendor"></param>
+        /// <param name="strHandler"></param>
+        /// <param name="strGroup"></param>
+        /// <param name="strFunctionData"></param>
+        private void ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup)
+        {
+            // 帧头
+            strHeader = "7E";
+            // 发送命令域
+            strCommand = "11 01";
+            // 发送地址
+            strAddress = frameAddress;
+            // 协议和厂商号
+            strProtocolVendor = frameContent.Substring(27, 11);
+            // 仪表类型：手操器
+            strHandler = "1F 10";
+            // 组号表号
+            strGroup = frameContent.Substring(45, 5);
+        }
+
+
+
+
+
+
+        /// <summary>
+        /// 画折线图
+        /// </summary>
+        private ObservableDataSource<Point> dataSource = new ObservableDataSource<Point>();
+        private DispatcherTimer timer = new DispatcherTimer();
+        private int i = 0;
+        double y = 0.0;
+
+
+        private void AnimatedPlot(object sender, EventArgs e)
+        {
+            if (frameContent != null)
+            {
+                timer.Interval = TimeSpan.FromSeconds(Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16));
+            }
+
+            double x = i;
+            try
+            {
+                Random rd = new Random();
+                y = rd.Next(1000, 2000) / 100;
+            }
+            catch { }
+
+            Point point = new Point(x, y);
+            dataSource.AppendAsync(base.Dispatcher, point);
+            string strx = DateTime.Now.ToString("HH:mm:ss");
+            dataUsageText.Text = y.ToString();
+
+            if (i >= 50)
+            {
+                plotter.Viewport.Visible = new System.Windows.Rect(i - 50, -1, 50, 24);
+            }
+            else
+            {
+                plotter.Viewport.Visible = new System.Windows.Rect(0, -1, 50, 24);
+            }
+            i++;
+
+        }
+
+
+        internal void Window_Loaded()
+        {
+            plotter.AxisGrid.Visibility = Visibility.Hidden;
+            plotter.AddLineGraph(dataSource, Colors.Blue, 2, "实时数据");
+            plotter.Viewport.Visible = new Rect(0, -1, 50, 24);
+            timer.Interval = TimeSpan.FromSeconds(0.1);
+            timer.Tick += new EventHandler(AnimatedPlot);
+            timer.IsEnabled = true;
+            plotter.Viewport.FitToView();
+        }
+
+
+
+
     }
+
+
 }
