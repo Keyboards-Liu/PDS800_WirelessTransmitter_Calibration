@@ -181,10 +181,13 @@ namespace PDS800_WirelessTransmitter_Calibration
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
                 turnOnButton.IsChecked = false;
                 statusTextBlock.Text = "串口检测错误！";
+
             }
         }
         #endregion
@@ -234,8 +237,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                 serialPort.DiscardInBuffer();
                 serialPort.DiscardOutBuffer();
             }
-            catch
+            catch (Exception ex)
             {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
                 // 异常时显示提示文字
                 statusTextBlock.Text = "开启串口出错！";
                 serialPort.Close();
@@ -261,8 +266,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                 serialPortStatusEllipse.Fill = Brushes.Gray;
                 turnOnButton.Content = "打开串口";
             }
-            catch
+            catch (Exception ex)
             {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
                 // 异常时显示提示文字
                 statusTextBlock.Text = "关闭串口出错！";
                 turnOnButton.IsChecked = true;
@@ -340,9 +347,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                             break;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    string str = ex.StackTrace;
+                    Console.WriteLine(str);
                 }
             }
 
@@ -434,8 +442,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                         break;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
                 // 异常时显示提示文字
                 statusTextBlock.Text = "文本解析出错！";
             }
@@ -480,8 +490,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         //        break;
                                         //}
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "通信协议解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -494,8 +506,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
                                         resAddress.Text = intFrameContentAddress.ToString();
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "网络地址解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -523,8 +537,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                             resVendor.Foreground = new SolidColorBrush(Colors.Red);
                                         }
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "厂商号解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -586,8 +602,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                             }
                                         }
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "仪表类型解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -598,8 +616,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     {
                                         resGroup.Text = Convert.ToInt32(frameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" + Convert.ToInt32(frameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "仪表组号解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -676,8 +696,10 @@ namespace PDS800_WirelessTransmitter_Calibration
 
                                         }
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "数据类型解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -690,8 +712,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 {
                                     resSucRate.Text = Convert.ToInt32(frameContent.Substring(30, 2), 16).ToString() + "%";
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "通信效率解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -702,8 +726,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 {
                                     resBatVol.Text = Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "电池电压解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -714,8 +740,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 {
                                     resSleepTime.Text = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16) + "秒";
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "休眠时间解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -769,8 +797,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         resStatue.Text = "正常";
                                     }
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "仪表状态解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -781,8 +811,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 {
                                     resTime.Text = Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "运行时间解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -801,8 +833,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     realTimeData = Convert.ToDouble(frameresData);
 
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "实时数据解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -844,8 +878,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         //        break;
                                         //}
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "通信协议解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -858,8 +894,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
                                         resAddress.Text = intFrameContentAddress.ToString();
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "网络地址解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -887,8 +925,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                             resVendor.Foreground = new SolidColorBrush(Colors.Red);
                                         }
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "厂商号解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -951,8 +991,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                             }
                                         }
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "仪表类型解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -963,8 +1005,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     {
                                         resGroup.Text = Convert.ToInt32(frameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" + Convert.ToInt32(frameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "仪表组号解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -1041,8 +1085,10 @@ namespace PDS800_WirelessTransmitter_Calibration
 
                                         }
                                     }
-                                    catch
+                                    catch (Exception ex)
                                     {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
                                         // 异常时显示提示文字
                                         statusTextBlock.Text = "数据类型解析出错！";
                                         turnOnButton.IsChecked = false;
@@ -1055,8 +1101,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 {
                                     resSucRate.Text = Convert.ToInt32(frameContent.Substring(30, 2), 16).ToString() + "%";
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "通信效率解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -1067,8 +1115,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 {
                                     resBatVol.Text = Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "电池电压解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -1079,8 +1129,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 {
                                     resSleepTime.Text = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16) + "秒";
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "休眠时间解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -1134,8 +1186,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         resStatue.Text = "正常";
                                     }
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "仪表状态解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -1146,8 +1200,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 {
                                     resTime.Text = Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "运行时间解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -1174,11 +1230,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     }
 
                                     resData.Text = flFrameData.ToString() + type;
-                                    realTimeData = Convert.ToDouble(frameresData);
 
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
+                                    string str = ex.StackTrace;
+                                    Console.WriteLine(str);
                                     // 异常时显示提示文字
                                     statusTextBlock.Text = "实时数据解析出错！";
                                     turnOnButton.IsChecked = false;
@@ -1200,8 +1257,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                 }
 
             }
-            catch
+            catch (Exception ex)
             {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
                 // 异常时显示提示文字
                 statusTextBlock.Text = "参数解析出错！";
                 turnOnButton.IsChecked = false;
@@ -1219,9 +1278,19 @@ namespace PDS800_WirelessTransmitter_Calibration
             string txt = receiveText.Trim();
             string[] hexvalue = txt.Remove(0, 9).Remove(txt.Length - 12).Split(' ');
             // 0xFF - 字符串求和
-            foreach (string hex in hexvalue) j = j + Convert.ToInt32(hex, 16);
-            string hexj = (0xFF - Convert.ToInt32(j.ToString("X").Substring(j.ToString("X").Length - 2, 2), 16)).ToString("X");
-            return hexj;
+            try
+            {
+                foreach (string hex in hexvalue) j = j + Convert.ToInt32(hex, 16);
+                string hexj = (0xFF - Convert.ToInt32(j.ToString("X").Substring(j.ToString("X").Length - 2, 2), 16)).ToString("X");
+                return hexj;
+            }
+            catch (Exception ex)
+            {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
+                return "";
+            }
+
         }
 
         private static string CalCheckCode_FE(string receiveText)
@@ -1302,8 +1371,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                         sendBuffer[i] = Convert.ToByte(j);
                         i++;
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        string std = ex.StackTrace;
+                        Console.WriteLine(std);
                         serialPort.DiscardOutBuffer();
                         MessageBox.Show("字节越界，请逐个字节输入！", "Error");
                         autoSendCheckBox.IsChecked = false;// 关闭自动发送
@@ -1318,16 +1389,20 @@ namespace PDS800_WirelessTransmitter_Calibration
                 {
                     serialPort.Write(sendBuffer, 0, sendBuffer.Length);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    string str = ex.StackTrace;
+                    Console.WriteLine(str);
                     statusTextBlock.Text = "串口异常";
                 }
                 // 更新发送数据计数
                 sendBytesCount += (uint)sendBuffer.Length;
                 statusSendByteTextBlock.Text = sendBytesCount.ToString();
             }
-            catch
+            catch (Exception ex)
             {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
                 statusTextBlock.Text = "当前为16进制发送模式，请输入16进制数据";
                 autoSendCheckBox.IsChecked = false;// 关闭自动发送
             }
@@ -1365,8 +1440,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                         sendBuffer[i] = Convert.ToByte(j);
                         i++;
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        string std = ex.StackTrace;
+                        Console.WriteLine(std);
                         serialPort.DiscardOutBuffer();
                         MessageBox.Show("字节越界，请逐个字节输入！", "Error");
                         autoSendCheckBox.IsChecked = false;// 关闭自动发送
@@ -1381,16 +1458,20 @@ namespace PDS800_WirelessTransmitter_Calibration
                 {
                     serialPort.Write(sendBuffer, 0, sendBuffer.Length);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    string str = ex.StackTrace;
+                    Console.WriteLine(str);
                     statusTextBlock.Text = "串口异常";
                 }
                 // 更新发送数据计数
                 sendBytesCount += (uint)sendBuffer.Length;
                 statusSendByteTextBlock.Text = sendBytesCount.ToString();
             }
-            catch
+            catch (Exception ex)
             {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
                 statusTextBlock.Text = "当前为16进制发送模式，请输入16进制数据";
                 autoSendCheckBox.IsChecked = false;// 关闭自动发送
             }
@@ -1525,52 +1606,62 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <returns></returns>
         private string RegularDataConfirmationFrame()
         {
-            string str = "";
-            switch (frameHeader)
+            try
             {
-                case "FE":
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
-                        // 写操作数据区
-                        string strHandlerContent = "00 08";
-                        // 合成数据域
-                        string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（不包含命令域）
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-                        string strInner = strLength + " " + strCommand + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
-                    }
-                    break;
-                case "7E":
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
-                        // 功能码 / 数据类型
-                        string strFunctionData = "01 00";
-                        // 写操作数据区
-                        string strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text, 16)).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        // 合成数据域
-                        string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        string strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
-                    }
-                    break;
-                default:
-                    break;
+                string str = "";
+                switch (frameHeader)
+                {
+                    case "FE":
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                            // 写操作数据区
+                            string strHandlerContent = "00 08";
+                            // 合成数据域
+                            string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（不包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                            string strInner = strLength + " " + strCommand + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+                        break;
+                    case "7E":
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 功能码 / 数据类型
+                            string strFunctionData = "01 00";
+                            // 写操作数据区
+                            string strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text, 16)).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            // 合成数据域
+                            string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                return str;
+            }
+            catch (Exception ex)
+            {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
+                return "";
             }
 
-            return str;
         }
         /// <summary>
         /// 基本信息确认帧
@@ -1578,52 +1669,62 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <returns></returns>
         private string BasicInformationConfirmationFrame()
         {
-            string str = "";
-            switch (frameHeader)
+            try
             {
-                case "FE":
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
-                        // 写操作数据区
-                        string strHandlerContent = "00 08";
-                        // 合成数据域
-                        string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（不包含命令域）
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-                        string strInner = strLength + " " + strCommand + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
-                    }
-                    break;
-                case "7E":
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
-                        // 写操作数据区
-                        // 功能码 / 数据类型
-                        string strFunctionData = "01 01";
-                        string strHandlerContent = "";
-                        // 合成数据域
-                        string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        string strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
-                    }
-                    break;
-                default:
-                    break;
+                string str = "";
+                switch (frameHeader)
+                {
+                    case "FE":
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                            // 写操作数据区
+                            string strHandlerContent = "00 08";
+                            // 合成数据域
+                            string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（不包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                            string strInner = strLength + " " + strCommand + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+                        break;
+                    case "7E":
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            string strFunctionData = "01 01";
+                            string strHandlerContent = "";
+                            // 合成数据域
+                            string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                return str;
             }
 
-            return str;
+            catch (Exception ex)
+            {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
+                return "";
+            }
         }
 
 
@@ -1653,8 +1754,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                     }
                     establishConnectionButton.Content = "关闭连接";
                 }
-                catch
+                catch (Exception ex)
                 {
+                    string str = ex.StackTrace;
+                    Console.WriteLine(str);
                     // 异常时显示提示文字
                     statusTextBlock.Text = "建立连接出错！";
                     // 指示灯变灰
@@ -1748,8 +1851,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                         establishConnectionButton.IsChecked = false;
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
+                    string str = ex.StackTrace;
+                    Console.WriteLine(str);
                     // 异常时显示提示文字
                     statusTextBlock.Text = "描述标定出错！";
                 }
@@ -1829,8 +1934,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 标定连接发送
                     // SerialPortSend();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    string str = ex.StackTrace;
+                    Console.WriteLine(str);
                     // 异常时显示提示文字
                     statusTextBlock.Text = "描述标定出错！";
                 }
@@ -2031,9 +2138,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                     Bytes[i] = Convert.ToByte(HexStr.Substring(i, 1), 16);
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                throw new Exception(e.Message);
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
             }
             return Bytes;
         }
@@ -2044,32 +2152,6 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <returns></returns>
         private static float HexStrToFloat(string HexStr)
         {
-            //if (HexStr == null)
-            //{
-            //    throw new ArgumentNullException(nameof(HexStr));
-            //}
-            //string binData = Convert.ToString(Convert.ToInt32(HexStr, 16), 2).PadLeft(32, '0');
-            //int binData_Sign = (1 - Convert.ToInt32(binData.Substring(0, 1), 2) * 2);
-            //int binData_Exp = Convert.ToInt32(binData.Substring(1, 8), 2) - 127;
-            //string binData_Mant = "1" + binData.Substring(9, 23);
-            //if (binData_Exp >= 0)
-            //{
-            //    binData_Mant = binData_Mant.Insert(binData_Exp + 1, ".");
-            //}
-            //else binData_Mant = binData_Mant.PadLeft(binData_Mant.Length - binData_Sign, '0').Insert(1, ".");
-            //string[] binDataStr = binData_Mant.Split('.');
-            //double flData = 0.0;
-            //for (int i = 0; i < binDataStr[0].Length; i++)
-            //{
-            //    double EXP = Math.Pow(2, binDataStr[0].Length - i - 1);
-            //    flData += Convert.ToInt32(binDataStr[0].Substring(i, 1)) * EXP;
-            //}
-            //for (int i = 0; i < binDataStr[1].Length; i++)
-            //{
-            //    double EXP = Math.Pow(2, -i - 1);
-            //    flData += Convert.ToInt32(binDataStr[1].Substring(i, 1)) * EXP;
-            //}
-            //return flData;
             HexStr = HexStr.Replace(" ", "");
             if (HexStr.Length != 8)
             {
@@ -2259,7 +2341,11 @@ namespace PDS800_WirelessTransmitter_Calibration
                 Random rd = new Random();
                 y = rd.Next(1000, 2000) / 100;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
+            }
 
             Point point = new Point(x, y);
             dataSource.AppendAsync(base.Dispatcher, point);
