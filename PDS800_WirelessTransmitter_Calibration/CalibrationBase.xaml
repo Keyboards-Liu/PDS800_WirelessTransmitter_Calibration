@@ -42,7 +42,7 @@
         </Grid.ColumnDefinitions>
         <Grid Grid.Column="0" Grid.Row="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="150*" MinHeight="135"/>
+                <RowDefinition Height="120*" MinHeight="120"/>
                 <RowDefinition Height="60*" MinHeight="60"/>
                 <RowDefinition Height="90*" MinHeight="90"/>
             </Grid.RowDefinitions>
@@ -128,7 +128,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <CheckBox x:Name="autoClearCheckBox" Margin="5,5,10,5" Content="自动清空" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsChecked="True"/>
+                        <CheckBox x:Name="autoClearCheckBox" Margin="5,5,10,5" Content="自动清空" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" IsChecked="True"/>
                         <Button Command="Save" Content="保存文件" Margin="5,5,10,5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                     </StackPanel>
                     <Button x:Name="clearReceiveButton"  Grid.Column="1" Margin="5" Content="清空接收区" Click="ClearReceiveButton_Click"/>
@@ -185,23 +185,29 @@
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                        <RowDefinition/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
                     </Grid.RowDefinitions>
-                 <DockPanel Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="5,0">
-                    <Label Content="连接状态"/>
-                    <Ellipse HorizontalAlignment="Center" Height="16" Stroke="White" Width="16" Name="connectionStatusEllipse" Fill="Gray"/>
+                    <DockPanel Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="5" Grid.Row="0">
+                        <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="常规数据更新率" Width="120"/>
+                        <TextBox x:Name="regularDataUpdateRate" Margin="0" Text="8" Width="30" VerticalAlignment="Center" PreviewTextInput="RegularDataUpdateRate_PreviewTextInput"/>
+                        <TextBlock VerticalAlignment="Center" Text="秒"></TextBlock>
+                    </DockPanel>
+                    <DockPanel Grid.ColumnSpan="2" VerticalAlignment="Center" Margin="5" Grid.Row="1">
+                        <Label Content="连接状态"/>
+                        <Ellipse HorizontalAlignment="Center" Height="16" Stroke="White" Width="16" Name="connectionStatusEllipse" Fill="Gray"/>
                         <ToggleButton x:Name="establishConnectionButton" Margin="5" Content="建立连接" Checked="EstablishConnectionButton_Checked" Unchecked="EstablishConnectionButton_Unchecked"/>
                     </DockPanel>
-                    <Button Height="24" Grid.Column="0" Grid.Row="1" x:Name="descriptionCalibrationButton" Margin="5,0" Content="描述标定" Click="DescriptionCalibrationButton_Click"/>
-                    <Button Height="24" Grid.Column="1" Grid.Row="1" x:Name="parameterCalibrationButton" Margin="5,0" Content="参数标定" Click="ParameterCalibrationButton_Click"/>
-                    <Button x:Name="manuallySendButton" Height="24" Grid.Row="2" Grid.Column="1" Margin="5,0" Content="手动发送" Click="SendButton_Click">
+                    <Button Grid.Column="0" Grid.Row="2" x:Name="descriptionCalibrationButton" Margin="5" Content="描述标定" Click="DescriptionCalibrationButton_Click"/>
+                    <Button Grid.Column="1" Grid.Row="2" x:Name="parameterCalibrationButton" Margin="5" Content="参数标定" Click="ParameterCalibrationButton_Click"/>
+                    <Button x:Name="manuallySendButton" Grid.Row="3" Grid.Column="1" Margin="5" Content="手动发送" Click="SendButton_Click">
                         <Button.ToolTip>
                             <ToolTip Placement="Right" Content="Ctrl+Enter"/>
                         </Button.ToolTip>
                     </Button>
-                    <Button x:Name="manuallyClearSendButton" Height="24" Grid.Row="2" Grid.Column="0" Margin="5,0" Content="清空重填" Click="ClearSendButton_Click"/>
+                    <Button x:Name="manuallyClearSendButton" Grid.Row="3" Grid.Column="0" Margin="5" Content="清空重填" Click="ClearSendButton_Click"/>
 
 
                 </Grid>
@@ -227,7 +233,9 @@
             </GroupBox>
             <!--接收文本解析面板-->
             <!--<GroupBox Visibility="Hidden" Width="0" Height="0" Header="接收文本解析面板" BorderBrush="Gray">
-                --><!--非固定面板--><!--
+                -->
+            <!--非固定面板-->
+            <!--
                 <WrapPanel>
                     <DockPanel Margin="5,0">
                         <Label Content="帧头" VerticalAlignment="Center" Width="80"/>
@@ -314,7 +322,7 @@
             </GroupBox>
             <!--标定信息设置面板-->
 
-                <!--设备描述标定信息-->
+            <!--设备描述标定信息-->
             <TabControl Grid.Row="2" Margin="5" BorderBrush="Gray" >
                 <TabItem Header="描述标定" >
                     <ScrollViewer>
@@ -343,33 +351,33 @@
                         <ScrollViewer.ToolTip>
                             <ToolTip Placement="Top" Content="需要标定的内容"/>
                         </ScrollViewer.ToolTip>
-                        </ScrollViewer>
-                    </TabItem>
-                    <!--设备参数标定信息-->
-                    <TabItem Header="参数标定">
-                        <WrapPanel VerticalAlignment="Center">
-                            <DockPanel Margin="5,0">
-                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="标定参数" Width="120"/>
-                                <ComboBox Height="24" Margin="0,5" x:Name="calibrationParametersComboBox" SelectedIndex="0" MinWidth="240" SelectionChanged="CalibrationParametersComboBox_SelectionChanged">
-                                    <ComboBoxItem Content="0x50，下限标定"/>
-                                    <ComboBoxItem Content="0x51，上限标定（加压）"/>
-                                    <ComboBoxItem Content="0x52，置零点（SetZero）"/>
-                                    <ComboBoxItem Content="0x53，设量程上限"/>
-                                    <ComboBoxItem Content="0x54，设量程下限"/>
-                                    <ComboBoxItem Content="0x55，显示单位"/>
-                                </ComboBox>
-                            </DockPanel>
-
-                            <DockPanel Margin="5,0">
-                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="命令号（1byte）" Width="120"/>
-                                <TextBox x:Name="calibrationCommandNumberTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
-                            </DockPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <!--设备参数标定信息-->
+                <TabItem Header="参数标定">
+                    <WrapPanel VerticalAlignment="Center">
                         <DockPanel Margin="5,0">
-                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="单位（1byte）" Width="120"/>
-                                <TextBox x:Name="calibrationUnitTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
-                            </DockPanel>                            
-                        </WrapPanel>
-                    </TabItem>
+                            <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="标定参数" Width="120"/>
+                            <ComboBox Height="24" Margin="0,5" x:Name="calibrationParametersComboBox" SelectedIndex="0" MinWidth="240" SelectionChanged="CalibrationParametersComboBox_SelectionChanged">
+                                <ComboBoxItem Content="0x50，下限标定"/>
+                                <ComboBoxItem Content="0x51，上限标定（加压）"/>
+                                <ComboBoxItem Content="0x52，置零点（SetZero）"/>
+                                <ComboBoxItem Content="0x53，设量程上限"/>
+                                <ComboBoxItem Content="0x54，设量程下限"/>
+                                <ComboBoxItem Content="0x55，显示单位"/>
+                            </ComboBox>
+                        </DockPanel>
+
+                        <DockPanel Margin="5,0">
+                            <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="命令号（1byte）" Width="120"/>
+                            <TextBox x:Name="calibrationCommandNumberTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <DockPanel Margin="5,0">
+                            <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="单位（1byte）" Width="120"/>
+                            <TextBox x:Name="calibrationUnitTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </WrapPanel>
+                </TabItem>
                 <TabItem Header="实时数据">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -392,15 +400,15 @@
                     </Grid>
                 </TabItem>
             </TabControl>
-                <!--发送文本面板-->
-                <GroupBox Grid.Row="3" Grid.ColumnSpan="2" Header="发送文本面板" Margin="5" BorderBrush="Gray">
-                    <ScrollViewer Margin="5" BorderBrush="Gray">
-                        <TextBox x:Name="sendTextBox" AcceptsReturn="True" TextWrapping="Wrap" TextAlignment="Left"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontFamily="宋体" FontSize="15" PreviewTextInput="SendTextBox_PreviewTextInput" BorderBrush="{x:Null}" BorderThickness="0"/>
-                        <ScrollViewer.ToolTip>
-                            <ToolTip Placement="Top" Content="将要发送的数据，Ctrl+Enter发送"/>
-                        </ScrollViewer.ToolTip>
-                    </ScrollViewer>
-                </GroupBox>
+            <!--发送文本面板-->
+            <GroupBox Grid.Row="3" Grid.ColumnSpan="2" Header="发送文本面板" Margin="5" BorderBrush="Gray">
+                <ScrollViewer Margin="5" BorderBrush="Gray">
+                    <TextBox x:Name="sendTextBox" AcceptsReturn="True" TextWrapping="Wrap" TextAlignment="Left"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontFamily="宋体" FontSize="15" PreviewTextInput="SendTextBox_PreviewTextInput" BorderBrush="{x:Null}" BorderThickness="0"/>
+                    <ScrollViewer.ToolTip>
+                        <ToolTip Placement="Top" Content="将要发送的数据，Ctrl+Enter发送"/>
+                    </ScrollViewer.ToolTip>
+                </ScrollViewer>
+            </GroupBox>
 
 
 

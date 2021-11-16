@@ -316,6 +316,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                             break;
                         case "7E":
                             {
+                                // 仪表常规数据
                                 if (((receiveText.Length + 1) / 3) == 42)
                                 {
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
@@ -323,6 +324,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         ShowReceiveData(receiveText);
                                         ShowParseText(receiveText);
                                         ShowParseParameter(receiveText);
+                                        SendRegularDataConfirmationFramereceiveText(receiveText);
                                     }));
                                 }
                                 else if (((receiveText.Length + 1) / 3) != 42 && receiveText.Replace(" ", "") != "")
@@ -337,7 +339,6 @@ namespace PDS800_WirelessTransmitter_Calibration
                         default:
                             break;
                     }
-
                 }
                 catch
                 {
@@ -347,6 +348,13 @@ namespace PDS800_WirelessTransmitter_Calibration
 
 
         }
+
+        private void SendRegularDataConfirmationFramereceiveText(string receiveText)
+        {
+            string str = RegularDataConfirmationFrame();
+            SerialPortSend(str);
+        }
+
         public static void PrintValues(IEnumerable myCollection)
         {
             foreach (object obj in myCollection)
@@ -1324,6 +1332,69 @@ namespace PDS800_WirelessTransmitter_Calibration
                 autoSendCheckBox.IsChecked = false;// 关闭自动发送
             }
         }
+
+        private void SerialPortSend(string hexstr)
+        {
+            sendCount++;
+            //Console.WriteLine("发送" + sendCount + "次");
+            // 清空发送缓冲区
+            serialPort.DiscardOutBuffer();
+            if (!serialPort.IsOpen)
+            {
+                statusTextBlock.Text = "请先打开串口！";
+                return;
+            }
+            // 去掉十六进制前缀
+            hexstr.Replace("0x", "");
+            hexstr.Replace("0X", "");
+            string sendData = hexstr;
+
+            // 十六进制数据发送
+            try
+            {
+                // 分割字符串
+                string[] strArray = sendData.Split(new char[] { ' ' });
+                // 写入数据缓冲区
+                byte[] sendBuffer = new byte[strArray.Length];
+                int i = 0;
+                foreach (string str in strArray)
+                {
+                    try
+                    {
+                        int j = Convert.ToInt16(str, 16);
+                        sendBuffer[i] = Convert.ToByte(j);
+                        i++;
+                    }
+                    catch
+                    {
+                        serialPort.DiscardOutBuffer();
+                        MessageBox.Show("字节越界，请逐个字节输入！", "Error");
+                        autoSendCheckBox.IsChecked = false;// 关闭自动发送
+                    }
+                }
+                //foreach (byte b in sendBuffer)
+                //{
+                //    Console.Write(b.ToString("X2"));
+                //}
+                //Console.WriteLine("");
+                try
+                {
+                    serialPort.Write(sendBuffer, 0, sendBuffer.Length);
+                }
+                catch
+                {
+                    statusTextBlock.Text = "串口异常";
+                }
+                // 更新发送数据计数
+                sendBytesCount += (uint)sendBuffer.Length;
+                statusSendByteTextBlock.Text = sendBytesCount.ToString();
+            }
+            catch
+            {
+                statusTextBlock.Text = "当前为16进制发送模式，请输入16进制数据";
+                autoSendCheckBox.IsChecked = false;// 关闭自动发送
+            }
+        }
         /// <summary>
         /// 手动单击按钮发送
         /// </summary>
@@ -1447,188 +1518,65 @@ namespace PDS800_WirelessTransmitter_Calibration
         }
         #endregion
 
-        #region 方法打包
+        #region 上位机响应仪表方法
         /// <summary>
-        /// 二进制字符串转换为十六进制字符串并格式化
+        /// 常规数据确认帧
         /// </summary>
-        /// <param name="bytes"></param>
-        private static string BytestoHexStr(byte[] bytes)
-        {
-            string HexStr = "";
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                HexStr += string.Format("{0:X2} ", bytes[i]);
-            }
-            HexStr = HexStr.Trim();
-            return HexStr;
-        }
-        /// <summary>
-        /// 两个十六进制字符串求异或
-        /// </summary>
-        /// <param name="HexStr1"></param>
-        /// <param name="HexStr2"></param>
         /// <returns></returns>
-        public static string HexStrXor(string HexStr1, string HexStr2)
-        {
-            // 两个十六进制字符串的长度和长度差的绝对值以及异或结果
-            int iHexStr1Len = HexStr1.Length;
-            int iHexStr2Len = HexStr2.Length;
-            int iGap, iHexStrLenLow;
-            string result = string.Empty;
-            // 获取这两个十六进制字符串长度的差值
-            iGap = iHexStr1Len - iHexStr2Len;
-            // 获取这两个十六进制字符串长度最小的那一个
-            iHexStrLenLow = iHexStr1Len < iHexStr2Len ? iHexStr1Len : iHexStr2Len;
-            // 将这两个字符串转换成字节数组
-            byte[] bHexStr1 = HexStrToBytes(HexStr1);
-            byte[] bHexStr2 = HexStrToBytes(HexStr2);
-            int i = 0;
-            //先把每个字节异或后得到一个0~15范围内的整数，再转换成十六进制字符
-            for (; i < iHexStrLenLow; ++i)
-            {
-                result += (bHexStr1[i] ^ bHexStr2[i]).ToString("X");
-            }
-
-            result += iGap >= 0 ? HexStr1.Substring(i, iGap) : HexStr2.Substring(i, -iGap);
-            return result;
-        }
-
-        /// <summary>
-        /// 一串字符串求异或值
-        /// </summary>
-        /// <param name="ori"></param>
-        /// <returns></returns>
-        private string HexCRC(string ori)
-        {
-            string[] hexvalue = ori.Trim().Split(' ', '	');
-            string j = "";
-            foreach (string hex in hexvalue)
-            {
-                j = HexStrXor(j, hex);
-            }
-            return j;
-        }
-        /// <summary>
-        /// 将十六进制字符串转换为十六进制数组
-        /// </summary>
-        /// <param name="HexStr"></param>
-        /// <returns></returns>
-        public static byte[] HexStrToBytes(string HexStr)
-        {
-            if (HexStr == null)
-            {
-                throw new ArgumentNullException(nameof(HexStr));
-            }
-
-            byte[] Bytes = new byte[HexStr.Length];
-            try
-            {
-                for (int i = 0; i < Bytes.Length; ++i)
-                {
-                    //将每个16进制字符转换成对应的1个字节
-                    Bytes[i] = Convert.ToByte(HexStr.Substring(i, 1), 16);
-                }
-            }
-            catch (Exception e)
-            {
-                throw new Exception(e.Message);
-            }
-            return Bytes;
-        }
-        /// <summary>
-        /// 十六进制字符串转换为浮点数
-        /// </summary>
-        /// <param name="HexStr"></param>
-        /// <returns></returns>
-        private static float HexStrToFloat(string HexStr)
-        {
-            //if (HexStr == null)
-            //{
-            //    throw new ArgumentNullException(nameof(HexStr));
-            //}
-            //string binData = Convert.ToString(Convert.ToInt32(HexStr, 16), 2).PadLeft(32, '0');
-            //int binData_Sign = (1 - Convert.ToInt32(binData.Substring(0, 1), 2) * 2);
-            //int binData_Exp = Convert.ToInt32(binData.Substring(1, 8), 2) - 127;
-            //string binData_Mant = "1" + binData.Substring(9, 23);
-            //if (binData_Exp >= 0)
-            //{
-            //    binData_Mant = binData_Mant.Insert(binData_Exp + 1, ".");
-            //}
-            //else binData_Mant = binData_Mant.PadLeft(binData_Mant.Length - binData_Sign, '0').Insert(1, ".");
-            //string[] binDataStr = binData_Mant.Split('.');
-            //double flData = 0.0;
-            //for (int i = 0; i < binDataStr[0].Length; i++)
-            //{
-            //    double EXP = Math.Pow(2, binDataStr[0].Length - i - 1);
-            //    flData += Convert.ToInt32(binDataStr[0].Substring(i, 1)) * EXP;
-            //}
-            //for (int i = 0; i < binDataStr[1].Length; i++)
-            //{
-            //    double EXP = Math.Pow(2, -i - 1);
-            //    flData += Convert.ToInt32(binDataStr[1].Substring(i, 1)) * EXP;
-            //}
-            //return flData;
-            HexStr = HexStr.Replace(" ", "");
-            if (HexStr.Length != 8)
-            {
-                throw new ArgumentNullException(nameof(HexStr));
-            }
-            int data1 = Convert.ToInt32(HexStr.Substring(0, 2), 16);
-            int data2 = Convert.ToInt32(HexStr.Substring(2, 2), 16);
-            int data3 = Convert.ToInt32(HexStr.Substring(4, 2), 16);
-            int data4 = Convert.ToInt32(HexStr.Substring(6, 2), 16);
-
-            int data = data1 << 24 | data2 << 16 | data3 << 8 | data4;
-
-            int nSign;
-            if ((data & 0x80000000) > 0)
-            {
-                nSign = -1;
-            }
-            else
-            {
-                nSign = 1;
-            }
-            int nExp = data & (0x7F800000);
-            nExp = nExp >> 23;
-            float nMantissa = data & (0x7FFFFF);
-
-            if (nMantissa != 0)
-                nMantissa = 1 + nMantissa / 8388608;
-
-            float value = nSign * nMantissa * (2 << (nExp - 128));
-            return value;
-        }
-
-        /// <summary>
-        /// 仪表参数解析面板清空
-        /// </summary>
-        private void ParseParameterClear()
-        {
-            // 清空解析面板
-            resProtocol.Clear(); resAddress.Clear(); resVendor.Clear();
-            resType.Clear(); resGroup.Clear(); resFunctionData.Clear();
-            resSucRate.Clear(); resBatVol.Clear(); resSleepTime.Clear();
-            resStatue.Clear(); resData.Clear(); resTime.Clear();
-            resCRC.Clear();
-            // 将前景色改为黑色
-            resProtocol.Foreground = new SolidColorBrush(Colors.Black);
-            resAddress.Foreground = new SolidColorBrush(Colors.Black);
-            resVendor.Foreground = new SolidColorBrush(Colors.Black);
-            resType.Foreground = new SolidColorBrush(Colors.Black);
-            resGroup.Foreground = new SolidColorBrush(Colors.Black);
-            resFunctionData.Foreground = new SolidColorBrush(Colors.Black);
-            resSucRate.Foreground = new SolidColorBrush(Colors.Black);
-            resBatVol.Foreground = new SolidColorBrush(Colors.Black);
-            resSleepTime.Foreground = new SolidColorBrush(Colors.Black);
-            resStatue.Foreground = new SolidColorBrush(Colors.Black);
-            resData.Foreground = new SolidColorBrush(Colors.Black);
-            resTime.Foreground = new SolidColorBrush(Colors.Black);
-            resCRC.Foreground = new SolidColorBrush(Colors.Black);
-        }
-        #endregion
-
         private string RegularDataConfirmationFrame()
+        {
+            string str = "";
+            switch (frameHeader)
+            {
+                case "FE":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData);
+                        // 写操作数据区
+                        string strHandlerContent = "00 08";
+                        // 合成数据域
+                        string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域（不包含命令域）
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        string strInner = strLength + " " + strCommand + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                case "7E":
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                        // 功能码 / 数据类型
+                        string strFunctionData = "01 00";
+                        // 写操作数据区
+                        string strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text, 16)).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                        // 合成数据域
+                        string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        // 计算长度域（包含命令域）
+                        int intLength = (strContent.Length + 1) / 3;
+                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                        string strInner = strLength + " " + strContent;
+                        // 计算异或校验码
+                        string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                        // 合成返回值
+                        str = strHeader + " " + strInner + " " + strCRC;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            return str;
+        }
+        /// <summary>
+        /// 基本信息确认帧
+        /// </summary>
+        /// <returns></returns>
+        private string BasicInformationConfirmationFrame()
         {
             string str = "";
             switch (frameHeader)
@@ -1657,8 +1605,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                         ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
                         // 写操作数据区
                         // 功能码 / 数据类型
-                        string strFunctionData = "00 80";
-                        string strHandlerContent = "00 08";
+                        string strFunctionData = "01 01";
+                        string strHandlerContent = "";
                         // 合成数据域
                         string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
                         // 计算长度域（包含命令域）
@@ -1680,7 +1628,6 @@ namespace PDS800_WirelessTransmitter_Calibration
 
 
 
-
         /// <summary>
         /// 建立连接处理程序
         /// </summary>
@@ -1694,10 +1641,11 @@ namespace PDS800_WirelessTransmitter_Calibration
                 try
                 {
                     // 发送下行报文建立连接 
-                    // 生成16进制字符串
-                    sendTextBox.Text = EstablishBuild_Text();
-                    // 标定连接发送
-                    // SerialPortSend();
+                    //// 生成16进制字符串
+                    //sendTextBox.Text = EstablishBuild_Text();
+                    //// 标定连接发送
+                    //// SerialPortSend();
+                    serialPort.Write(EstablishBuild_Text());
                     // 指示灯变绿
                     if (true)
                     {
@@ -1946,6 +1894,256 @@ namespace PDS800_WirelessTransmitter_Calibration
         }
 
         /// <summary>
+        /// FE标定公用数据
+        /// </summary>
+        /// <param name="strHeader"></param>
+        /// <param name="strCommand"></param>
+        /// <param name="strAddress"></param>
+        /// <param name="strProtocolVendor"></param>
+        /// <param name="strHandler"></param>
+        /// <param name="strGroup"></param>
+        /// <param name="strFunctionData"></param>        
+        private void ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
+        {
+            // 获取所需解析数据
+            // 帧头
+            strHeader = "FE";
+            // 发送命令域
+            strCommand = "44 5F";
+            // 发送地址
+            strAddress = frameAddress;
+            // 协议和厂商号为数据内容前四位
+            strProtocolVendor = frameContent.Substring(0, 11);
+            // 仪表类型：手操器
+            strHandler = "1F 10";
+            // 组号表号
+            strGroup = frameContent.Substring(18, 5);
+            // 功能码 / 数据类型
+            strFunctionData = "00 80";
+        }
+        /// <summary>
+        /// 7E标定公用数据
+        /// </summary>
+        /// <param name="strHeader"></param>
+        /// <param name="strCommand"></param>
+        /// <param name="strAddress"></param>
+        /// <param name="strProtocolVendor"></param>
+        /// <param name="strHandler"></param>
+        /// <param name="strGroup"></param>
+        /// <param name="strFunctionData"></param>
+        private void ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup)
+        {
+            // 帧头
+            strHeader = "7E";
+            // 发送命令域
+            strCommand = "11 01";
+            // 发送地址
+            strAddress = frameAddress;
+            // 协议和厂商号
+            strProtocolVendor = frameContent.Substring(27, 11);
+            // 仪表类型：手操器
+            strHandler = "1F 10";
+            // 组号表号
+            strGroup = frameContent.Substring(45, 5);
+        }
+
+        #endregion
+
+        #region 其他方法
+        /// <summary>
+        /// 二进制字符串转换为十六进制字符串并格式化
+        /// </summary>
+        /// <param name="bytes"></param>
+        private static string BytestoHexStr(byte[] bytes)
+        {
+            string HexStr = "";
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                HexStr += string.Format("{0:X2} ", bytes[i]);
+            }
+            HexStr = HexStr.Trim();
+            return HexStr;
+        }
+        /// <summary>
+        /// 两个十六进制字符串求异或
+        /// </summary>
+        /// <param name="HexStr1"></param>
+        /// <param name="HexStr2"></param>
+        /// <returns></returns>
+        public static string HexStrXor(string HexStr1, string HexStr2)
+        {
+            // 两个十六进制字符串的长度和长度差的绝对值以及异或结果
+            int iHexStr1Len = HexStr1.Length;
+            int iHexStr2Len = HexStr2.Length;
+            int iGap, iHexStrLenLow;
+            string result = string.Empty;
+            // 获取这两个十六进制字符串长度的差值
+            iGap = iHexStr1Len - iHexStr2Len;
+            // 获取这两个十六进制字符串长度最小的那一个
+            iHexStrLenLow = iHexStr1Len < iHexStr2Len ? iHexStr1Len : iHexStr2Len;
+            // 将这两个字符串转换成字节数组
+            byte[] bHexStr1 = HexStrToBytes(HexStr1);
+            byte[] bHexStr2 = HexStrToBytes(HexStr2);
+            int i = 0;
+            //先把每个字节异或后得到一个0~15范围内的整数，再转换成十六进制字符
+            for (; i < iHexStrLenLow; ++i)
+            {
+                result += (bHexStr1[i] ^ bHexStr2[i]).ToString("X");
+            }
+
+            result += iGap >= 0 ? HexStr1.Substring(i, iGap) : HexStr2.Substring(i, -iGap);
+            return result;
+        }
+
+        /// <summary>
+        /// 一串字符串求异或值
+        /// </summary>
+        /// <param name="ori"></param>
+        /// <returns></returns>
+        private string HexCRC(string ori)
+        {
+            string[] hexvalue = ori.Trim().Split(' ', '	');
+            string j = "";
+            foreach (string hex in hexvalue)
+            {
+                j = HexStrXor(j, hex);
+            }
+            return j;
+        }
+        /// <summary>
+        /// 将十六进制字符串转换为十六进制数组
+        /// </summary>
+        /// <param name="HexStr"></param>
+        /// <returns></returns>
+        public static byte[] HexStrToBytes(string HexStr)
+        {
+            if (HexStr == null)
+            {
+                throw new ArgumentNullException(nameof(HexStr));
+            }
+
+            byte[] Bytes = new byte[HexStr.Length];
+            try
+            {
+                for (int i = 0; i < Bytes.Length; ++i)
+                {
+                    //将每个16进制字符转换成对应的1个字节
+                    Bytes[i] = Convert.ToByte(HexStr.Substring(i, 1), 16);
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
+            return Bytes;
+        }
+        /// <summary>
+        /// 十六进制字符串转换为浮点数
+        /// </summary>
+        /// <param name="HexStr"></param>
+        /// <returns></returns>
+        private static float HexStrToFloat(string HexStr)
+        {
+            //if (HexStr == null)
+            //{
+            //    throw new ArgumentNullException(nameof(HexStr));
+            //}
+            //string binData = Convert.ToString(Convert.ToInt32(HexStr, 16), 2).PadLeft(32, '0');
+            //int binData_Sign = (1 - Convert.ToInt32(binData.Substring(0, 1), 2) * 2);
+            //int binData_Exp = Convert.ToInt32(binData.Substring(1, 8), 2) - 127;
+            //string binData_Mant = "1" + binData.Substring(9, 23);
+            //if (binData_Exp >= 0)
+            //{
+            //    binData_Mant = binData_Mant.Insert(binData_Exp + 1, ".");
+            //}
+            //else binData_Mant = binData_Mant.PadLeft(binData_Mant.Length - binData_Sign, '0').Insert(1, ".");
+            //string[] binDataStr = binData_Mant.Split('.');
+            //double flData = 0.0;
+            //for (int i = 0; i < binDataStr[0].Length; i++)
+            //{
+            //    double EXP = Math.Pow(2, binDataStr[0].Length - i - 1);
+            //    flData += Convert.ToInt32(binDataStr[0].Substring(i, 1)) * EXP;
+            //}
+            //for (int i = 0; i < binDataStr[1].Length; i++)
+            //{
+            //    double EXP = Math.Pow(2, -i - 1);
+            //    flData += Convert.ToInt32(binDataStr[1].Substring(i, 1)) * EXP;
+            //}
+            //return flData;
+            HexStr = HexStr.Replace(" ", "");
+            if (HexStr.Length != 8)
+            {
+                throw new ArgumentNullException(nameof(HexStr));
+            }
+            int data1 = Convert.ToInt32(HexStr.Substring(0, 2), 16);
+            int data2 = Convert.ToInt32(HexStr.Substring(2, 2), 16);
+            int data3 = Convert.ToInt32(HexStr.Substring(4, 2), 16);
+            int data4 = Convert.ToInt32(HexStr.Substring(6, 2), 16);
+
+            int data = data1 << 24 | data2 << 16 | data3 << 8 | data4;
+
+            int nSign;
+            if ((data & 0x80000000) > 0)
+            {
+                nSign = -1;
+            }
+            else
+            {
+                nSign = 1;
+            }
+            int nExp = data & (0x7F800000);
+            nExp = nExp >> 23;
+            float nMantissa = data & (0x7FFFFF);
+
+            if (nMantissa != 0)
+                nMantissa = 1 + nMantissa / 8388608;
+
+            float value = nSign * nMantissa * (2 << (nExp - 128));
+            return value;
+        }
+        /// <summary>
+        /// 仅接受数字
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        private bool IsValid(string input)
+        {
+            Regex regex = new Regex("[0-9]");
+            return regex.IsMatch(input);
+        }
+        /// <summary>
+        /// 仪表参数解析面板清空
+        /// </summary>
+        private void ParseParameterClear()
+        {
+            // 清空解析面板
+            resProtocol.Clear(); resAddress.Clear(); resVendor.Clear();
+            resType.Clear(); resGroup.Clear(); resFunctionData.Clear();
+            resSucRate.Clear(); resBatVol.Clear(); resSleepTime.Clear();
+            resStatue.Clear(); resData.Clear(); resTime.Clear();
+            resCRC.Clear();
+            // 将前景色改为黑色
+            resProtocol.Foreground = new SolidColorBrush(Colors.Black);
+            resAddress.Foreground = new SolidColorBrush(Colors.Black);
+            resVendor.Foreground = new SolidColorBrush(Colors.Black);
+            resType.Foreground = new SolidColorBrush(Colors.Black);
+            resGroup.Foreground = new SolidColorBrush(Colors.Black);
+            resFunctionData.Foreground = new SolidColorBrush(Colors.Black);
+            resSucRate.Foreground = new SolidColorBrush(Colors.Black);
+            resBatVol.Foreground = new SolidColorBrush(Colors.Black);
+            resSleepTime.Foreground = new SolidColorBrush(Colors.Black);
+            resStatue.Foreground = new SolidColorBrush(Colors.Black);
+            resData.Foreground = new SolidColorBrush(Colors.Black);
+            resTime.Foreground = new SolidColorBrush(Colors.Black);
+            resCRC.Foreground = new SolidColorBrush(Colors.Black);
+        }
+
+        #endregion
+
+
+
+
+        /// <summary>
         /// 标定栏的数据预览
         /// </summary>
         /// <param name="sender"></param>
@@ -2034,60 +2232,6 @@ namespace PDS800_WirelessTransmitter_Calibration
         }
 
 
-        /// <summary>
-        /// FE标定公用数据
-        /// </summary>
-        /// <param name="strHeader"></param>
-        /// <param name="strCommand"></param>
-        /// <param name="strAddress"></param>
-        /// <param name="strProtocolVendor"></param>
-        /// <param name="strHandler"></param>
-        /// <param name="strGroup"></param>
-        /// <param name="strFunctionData"></param>        
-        private void ParameterAcquisition_FE(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup, out string strFunctionData)
-        {
-            // 获取所需解析数据
-            // 帧头
-            strHeader = "FE";
-            // 发送命令域
-            strCommand = "44 5F";
-            // 发送地址
-            strAddress = frameAddress;
-            // 协议和厂商号为数据内容前四位
-            strProtocolVendor = frameContent.Substring(0, 11);
-            // 仪表类型：手操器
-            strHandler = "1F 10";
-            // 组号表号
-            strGroup = frameContent.Substring(18, 5);
-            // 功能码 / 数据类型
-            strFunctionData = "00 80";
-        }
-        /// <summary>
-        /// 7E标定公用数据
-        /// </summary>
-        /// <param name="strHeader"></param>
-        /// <param name="strCommand"></param>
-        /// <param name="strAddress"></param>
-        /// <param name="strProtocolVendor"></param>
-        /// <param name="strHandler"></param>
-        /// <param name="strGroup"></param>
-        /// <param name="strFunctionData"></param>
-        private void ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup)
-        {
-            // 帧头
-            strHeader = "7E";
-            // 发送命令域
-            strCommand = "11 01";
-            // 发送地址
-            strAddress = frameAddress;
-            // 协议和厂商号
-            strProtocolVendor = frameContent.Substring(27, 11);
-            // 仪表类型：手操器
-            strHandler = "1F 10";
-            // 组号表号
-            strGroup = frameContent.Substring(45, 5);
-        }
-
 
 
 
@@ -2146,9 +2290,17 @@ namespace PDS800_WirelessTransmitter_Calibration
             plotter.Viewport.FitToView();
         }
 
-
-
-
+        private void RegularDataUpdateRate_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            {
+                if (regularDataUpdateRate.Text != "")
+                {
+                    IsValid(regularDataUpdateRate.Text);
+                    if (IsValid(regularDataUpdateRate.Text) == false || Convert.ToInt32(regularDataUpdateRate.Text, 16) > 65535 || Convert.ToInt32(regularDataUpdateRate.Text, 16) < 0)
+                        MessageBox.Show("请输入0 - 65535整数");
+                }
+            }
+        }
     }
 
 
