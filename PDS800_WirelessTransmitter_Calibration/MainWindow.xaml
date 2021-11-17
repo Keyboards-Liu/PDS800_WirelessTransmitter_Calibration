@@ -13,7 +13,7 @@
     <Grid>
         <!--<TabControl Name="tabControl" SelectionChanged="TabControl_SelectionChanged" >
             <TabItem Header="串口通信" MinHeight="10" MinWidth="40">-->
-        <local:CalibrationBase Loaded="CalibrationBaseUserControl_Loaded"></local:CalibrationBase>
+        <local:CalibrationBase x:Name="calibrationBase"></local:CalibrationBase>
         <!--</TabItem>
         </TabControl>-->
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,16 +23,17 @@ namespace PDS800_WirelessTransmitter_Calibration
     {
         public MainWindow()
         {
-            InitializeComponent();
-        }
+            try { InitializeComponent(); }
+            catch (Exception ex)
+            {
+                string str = ex.StackTrace;
+                Console.WriteLine(str); }
+            }
 
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (true)
-            {
-                softWareMainWindow.Width = 800;
-                softWareMainWindow.Height = 600;
-            }
+            softWareMainWindow.Width = 800;
+            softWareMainWindow.Height = 600;
         }
 
         private void CalibrationBaseUserControl_Loaded(object sender, RoutedEventArgs e)
@@ -39,9 +41,6 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         }
 
-        private void DataDisplay_Loaded(object sender, RoutedEventArgs e)
-        {
 
-        }
     }
 }

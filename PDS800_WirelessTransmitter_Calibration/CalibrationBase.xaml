@@ -4,30 +4,29 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:d3="http://research.microsoft.com/DynamicDataDisplay/1.0"
-
              xmlns:local="clr-namespace:PDS800_WirelessTransmitter_Calibration"
              mc:Ignorable="d" 
              
              MinHeight="540" MinWidth="780" 
              Background="White">
 
-    <!--自定义命令-->
+    <!--自定义命令--><!--
     <UserControl.Resources>
         <RoutedUICommand x:Key="sendTextKey"/>
     </UserControl.Resources>
 
-    <!--自定义命令绑定-->
+    --><!--自定义命令绑定--><!--
     <UserControl.InputBindings>
         <KeyBinding Modifiers="Ctrl" Key="Enter" Command="{StaticResource sendTextKey}"/>
     </UserControl.InputBindings>
 
-    <!--设置命令-->
+    --><!--设置命令--><!--
     <UserControl.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Open" Executed="FileOpen"/>
         <CommandBinding Command="ApplicationCommands.Save" Executed="FileSave"/>
         <CommandBinding Command="ApplicationCommands.Close" Executed="WindowClosed"/>
         <CommandBinding Command="{StaticResource sendTextKey}" Executed="SendButton_Click"/>
-    </UserControl.CommandBindings>
+    </UserControl.CommandBindings>-->
 
     <!--定义窗格网络-->
     <Grid>
@@ -218,7 +217,7 @@
         <Grid Grid.Column="1" Grid.Row="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="90*" MinHeight="90"/>
-                <RowDefinition Height="150*" MinHeight="150"/>
+                <RowDefinition Height="auto" MinHeight="60"/>
                 <RowDefinition Height="150*" MinHeight="150"/>
                 <RowDefinition Height="60*" MinHeight="60"/>
             </Grid.RowDefinitions>
@@ -231,90 +230,58 @@
                     </ScrollViewer.ToolTip>
                 </ScrollViewer>
             </GroupBox>
-            <!--接收文本解析面板-->
-            <!--<GroupBox Visibility="Hidden" Width="0" Height="0" Header="接收文本解析面板" BorderBrush="Gray">
-                -->
-            <!--非固定面板-->
-            <!--
-                <WrapPanel>
-                    <DockPanel Margin="5,0">
-                        <Label Content="帧头" VerticalAlignment="Center" Width="80"/>
-                        <TextBox x:Name="frameHeader" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
-                    </DockPanel>
-                    <DockPanel Margin="5,0">
-                        <Label Content="长度域" VerticalAlignment="Center" Width="80"/>
-                        <TextBox x:Name="frameLength" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
-                    </DockPanel>
-                    <DockPanel Margin="5,0">
-                        <Label Content="命令域" VerticalAlignment="Center" Width="80"/>
-                        <TextBox x:Name="frameCommand" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
-                    </DockPanel>
-                    <DockPanel Margin="5,0">
-                        <Label Content="数据地址域" VerticalAlignment="Center" Width="80"/>
-                        <TextBox x:Name="frameAddress" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
-                    </DockPanel>
-                    <DockPanel Margin="5,0">
-                        <Label Content="校验码" VerticalAlignment="Center" Width="80"/>
-                        <TextBox x:Name="frameCRC" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
-                    </DockPanel>
-                    <DockPanel Margin="5,0">
-                        <Label Content="数据内容域" VerticalAlignment="Center" Width="80"/>
-                        <TextBox x:Name ="frameContent"  IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
-                    </DockPanel>
-                </WrapPanel>
-            </GroupBox>-->
             <!--仪表参数解析面板-->
             <GroupBox Grid.Row="1" Header="仪表参数解析面板" Margin="5" BorderBrush="Gray">
-                <WrapPanel VerticalAlignment="Center">
-                    <DockPanel Margin="5,0" >
+                <WrapPanel VerticalAlignment="Center" x:Name="instrumentParameterAnalysisWrapPanel">
+                    <DockPanel x:Name="resProtocolDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="通信协议" VerticalAlignment="Center" Width="80" />
                         <TextBox x:Name="resProtocol" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resAddressDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="网络地址" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resAddress" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resVendorDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="厂商号" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resVendor" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resTypeDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="仪表类型" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resType" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resGroupDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="仪表组号" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resGroup" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resFunctionDataDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="数据类型" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resFunctionData" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resSucRateDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="通信效率" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resSucRate" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resBatVolDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="电池电压" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resBatVol" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resSleepTimeDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="休眠时间" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resSleepTime" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resStatueDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="仪表状态" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resStatue" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resTimeDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="运行时间" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resTime" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resDataDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="实时数据" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resData" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
-                    <DockPanel Margin="5,0">
+                    <DockPanel x:Name="resCRCDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="CRC校验" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resCRC" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>

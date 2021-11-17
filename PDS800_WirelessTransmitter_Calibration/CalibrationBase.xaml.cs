@@ -39,9 +39,9 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         // 变量定义
         // 日期
-        private string DateStr { get; set; }
+        private string dateStr = "";
         // 时刻
-        private string TimeStr { get; set; }
+        private string timeStr = "";
         //// 发送和接收队列
         //private static Queue receiveData = new Queue();
         //private static Queue sendData = new Queue();
@@ -101,7 +101,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             autoSendTimer.Interval = new TimeSpan(0, 0, 0, 0, Convert.ToInt32(autoSendCycleTextBox.Text));
             // 设置状态栏提示
             statusTextBlock.Text = "准备就绪";
-            Window_Loaded();
+            Plot_Loaded();
         }
         /// <summary>
         /// 显示当前时间
@@ -110,9 +110,9 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="e"></param>
         public void GetCurrentTime(object sender, EventArgs e)
         {
-            DateStr = DateTime.Now.ToString("yyyy-MM-dd");
-            TimeStr = DateTime.Now.ToString("HH:mm:ss");
-            operationTime.Text = DateStr + " " + TimeStr;
+            dateStr = DateTime.Now.ToString("yyyy-MM-dd");
+            timeStr = DateTime.Now.ToString("HH:mm:ss");
+            operationTime.Text = dateStr + " " + timeStr;
         }
         /// <summary>
         /// 在初始化串口时进行串口检测和添加
@@ -308,7 +308,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
                                     {
                                         ShowReceiveData(receiveText);
-                                        ShowParseText(receiveText);
+                                        ShowInstumentGeneralDataParseText(receiveText);
                                         ShowParseParameter(receiveText);
                                     }));
                                 }
@@ -329,7 +329,18 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
                                     {
                                         ShowReceiveData(receiveText);
-                                        ShowParseText(receiveText);
+                                        ShowInstumentGeneralDataParseText(receiveText);
+                                        ShowParseParameter(receiveText);
+                                        SendRegularDataConfirmationFramereceiveText(receiveText);
+                                    }));
+                                    
+                                }
+                                else if (((receiveText.Length + 1) / 3) == 96)
+                                {
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
+                                    {
+                                        ShowReceiveData(receiveText);
+                                        ShowInstumentGeneralDataParseText(receiveText);
                                         ShowParseParameter(receiveText);
                                         SendRegularDataConfirmationFramereceiveText(receiveText);
                                     }));
@@ -395,10 +406,10 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         }
         /// <summary>
-        /// 接收文本解析面板显示功能
+        /// 接收仪表常规数据解析面板显示功能
         /// </summary>
         /// <param name="receiveText"></param>
-        public void ShowParseText(string receiveText)
+        public void ShowInstumentGeneralDataParseText(string receiveText)
         {
             // 接收文本解析面板写入
             try
@@ -483,6 +494,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         //{
                                         //    case 0x0001:
                                         resProtocol.Text = "ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）";
+                                        resProtocolDockPanel.Visibility = Visibility.Visible;
                                         //        break;
                                         //    default:
                                         //        resProtocol.Text = "未知";
@@ -505,6 +517,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         string frameContentAddress = (frameAddress.Substring(3, 2) + frameAddress.Substring(0, 2)).Replace(" ", "");
                                         int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
                                         resAddress.Text = intFrameContentAddress.ToString();
+                                        resAddress.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -536,6 +549,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                             resVendor.Text = "未定义";
                                             resVendor.Foreground = new SolidColorBrush(Colors.Red);
                                         }
+                                        resVendorDockPanel.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -601,6 +615,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                 resType.Foreground = new SolidColorBrush(Colors.Red);
                                             }
                                         }
+                                        resTypeDockPanel.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -615,6 +630,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     try
                                     {
                                         resGroup.Text = Convert.ToInt32(frameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" + Convert.ToInt32(frameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
+                                        resGroup.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -695,6 +711,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                             }
 
                                         }
+                                        resTypeDockPanel.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -711,6 +728,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
                                     resSucRate.Text = Convert.ToInt32(frameContent.Substring(30, 2), 16).ToString() + "%";
+                                    resSucRateDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -725,6 +743,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
                                     resBatVol.Text = Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
+                                    resBatVolDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -739,6 +758,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
                                     resSleepTime.Text = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16) + "秒";
+                                    resSleepTimeDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -796,6 +816,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     {
                                         resStatue.Text = "正常";
                                     }
+                                    resStatueDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -810,6 +831,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
                                     resTime.Text = Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
+                                    resTimeDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -826,12 +848,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
                                     string frameresData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
                                     resData.Text = frameresData + "MPa";
-                                    // 十六进制字符串转换为浮点数字符串
-                                    //string frameresData = frameContent.Substring(48, 11).Replace(" ", "");
-                                    //double flFrameData = HexStrToFloat(frameresData);
-                                    //resData.Text = flFrameData.ToString();
-                                    realTimeData = Convert.ToDouble(frameresData);
-
+                                    resDataDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -848,7 +865,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 resCRC.Text = "未通过";
                                 resCRC.Foreground = new SolidColorBrush(Colors.Red);
                             }
-
+                            resCRCDockPanel.Visibility = Visibility.Visible;
                         }
                         break;
                     case "7E":
@@ -871,6 +888,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         //{
                                         //    case 0x0001:
                                         resProtocol.Text = "ZigBee（Digi International）";
+                                        resProtocolDockPanel.Visibility = Visibility.Visible;
                                         //        break;
                                         //    default:
                                         //        resProtocol.Text = "未知";
@@ -893,6 +911,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         string frameContentAddress = (frameAddress.Substring(6, 2) + frameAddress.Substring(3, 2)).Replace(" ", "");
                                         int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
                                         resAddress.Text = intFrameContentAddress.ToString();
+                                        resAddressDockPanel.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -924,6 +943,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                             resVendor.Text = "未定义";
                                             resVendor.Foreground = new SolidColorBrush(Colors.Red);
                                         }
+                                        resVendorDockPanel.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -990,6 +1010,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                 resType.Foreground = new SolidColorBrush(Colors.Red);
                                             }
                                         }
+                                        resTypeDockPanel.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -1004,6 +1025,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     try
                                     {
                                         resGroup.Text = Convert.ToInt32(frameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" + Convert.ToInt32(frameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
+                                        resGroupDockPanel.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -1084,6 +1106,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                             }
 
                                         }
+                                        resFunctionDataDockPanel.Visibility = Visibility.Visible;
                                     }
                                     catch (Exception ex)
                                     {
@@ -1100,6 +1123,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
                                     resSucRate.Text = Convert.ToInt32(frameContent.Substring(30, 2), 16).ToString() + "%";
+                                    resSucRateDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -1114,6 +1138,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
                                     resBatVol.Text = Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
+                                    resBatVolDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -1128,6 +1153,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
                                     resSleepTime.Text = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16) + "秒";
+                                    resSleepTimeDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -1185,6 +1211,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     {
                                         resStatue.Text = "正常";
                                     }
+                                    resStatueDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -1199,6 +1226,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
                                     resTime.Text = Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
+                                    resTimeDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -1228,9 +1256,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         case 0x0003: type = "℃"; break;
                                         default: type = ""; break;
                                     }
-
                                     resData.Text = flFrameData.ToString() + type;
-
+                                    resDataDockPanel.Visibility = Visibility.Visible;
                                 }
                                 catch (Exception ex)
                                 {
@@ -1247,6 +1274,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 resCRC.Text = "未通过";
                                 resCRC.Foreground = new SolidColorBrush(Colors.Red);
                             }
+                            resCRCDockPanel.Visibility = Visibility.Visible;
 
                         }
                         break;
@@ -1344,7 +1372,17 @@ namespace PDS800_WirelessTransmitter_Calibration
             sendCount++;
             //Console.WriteLine("发送" + sendCount + "次");
             // 清空发送缓冲区
-            serialPort.DiscardOutBuffer();
+            try
+            {
+                serialPort.DiscardOutBuffer();
+
+            }
+            catch (Exception ex)
+            {
+                string std = ex.StackTrace;
+                Console.WriteLine(std);
+            }            
+            
             if (!serialPort.IsOpen)
             {
                 statusTextBlock.Text = "请先打开串口！";
@@ -2109,6 +2147,10 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <returns></returns>
         private string HexCRC(string ori)
         {
+            if (ori == null)
+            {
+                throw new ArgumentNullException(nameof(ori));
+            }
             string[] hexvalue = ori.Trim().Split(' ', '	');
             string j = "";
             foreach (string hex in hexvalue)
@@ -2116,6 +2158,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 j = HexStrXor(j, hex);
             }
             return j;
+
         }
         /// <summary>
         /// 将十六进制字符串转换为十六进制数组
@@ -2152,6 +2195,10 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <returns></returns>
         private static float HexStrToFloat(string HexStr)
         {
+            if (HexStr == null)
+            {
+                throw new ArgumentNullException(nameof(HexStr));
+            }
             HexStr = HexStr.Replace(" ", "");
             if (HexStr.Length != 8)
             {
@@ -2218,6 +2265,20 @@ namespace PDS800_WirelessTransmitter_Calibration
             resData.Foreground = new SolidColorBrush(Colors.Black);
             resTime.Foreground = new SolidColorBrush(Colors.Black);
             resCRC.Foreground = new SolidColorBrush(Colors.Black);
+            // 隐藏字段
+            resProtocolDockPanel.Visibility = Visibility.Collapsed;
+            resAddressDockPanel.Visibility = Visibility.Collapsed;
+            resVendorDockPanel.Visibility = Visibility.Collapsed;
+            resTypeDockPanel.Visibility = Visibility.Collapsed;
+            resGroupDockPanel.Visibility = Visibility.Collapsed;
+            resFunctionDataDockPanel.Visibility = Visibility.Collapsed;
+            resSucRateDockPanel.Visibility = Visibility.Collapsed;
+            resBatVolDockPanel.Visibility = Visibility.Collapsed;
+            resSleepTimeDockPanel.Visibility = Visibility.Collapsed;
+            resStatueDockPanel.Visibility = Visibility.Collapsed;
+            resDataDockPanel.Visibility = Visibility.Collapsed;
+            resTimeDockPanel.Visibility = Visibility.Collapsed;
+            resCRCDockPanel.Visibility = Visibility.Collapsed;
         }
 
         #endregion
@@ -2365,7 +2426,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         }
 
 
-        internal void Window_Loaded()
+        private void Plot_Loaded()
         {
             plotter.AxisGrid.Visibility = Visibility.Hidden;
             plotter.AddLineGraph(dataSource, Colors.Blue, 2, "实时数据");
