@@ -308,7 +308,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
                                     {
                                         ShowReceiveData(receiveText);
-                                        ShowInstumentGeneralDataParseText(receiveText);
+                                        InstumentDataSegmentionText(receiveText);
                                         ShowParseParameter(receiveText);
                                     }));
                                 }
@@ -324,28 +324,18 @@ namespace PDS800_WirelessTransmitter_Calibration
                         case "7E":
                             {
                                 // 仪表常规数据
-                                if (((receiveText.Length + 1) / 3) == 42)
+                                if (((receiveText.Length + 1) / 3) == 42 || ((receiveText.Length + 1) / 3) == 96)
                                 {
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
                                     {
                                         ShowReceiveData(receiveText);
-                                        ShowInstumentGeneralDataParseText(receiveText);
+                                        InstumentDataSegmentionText(receiveText);
                                         ShowParseParameter(receiveText);
                                         SendRegularDataConfirmationFramereceiveText(receiveText);
                                     }));
-                                    
+
                                 }
-                                else if (((receiveText.Length + 1) / 3) == 96)
-                                {
-                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
-                                    {
-                                        ShowReceiveData(receiveText);
-                                        ShowInstumentGeneralDataParseText(receiveText);
-                                        ShowParseParameter(receiveText);
-                                        SendRegularDataConfirmationFramereceiveText(receiveText);
-                                    }));
-                                }
-                                else if (((receiveText.Length + 1) / 3) != 42 && receiveText.Replace(" ", "") != "")
+                                else if (((receiveText.Length + 1) / 3) != 42 && ((receiveText.Length + 1) / 3) == 96 && receiveText.Replace(" ", "") != "")
                                 {
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
                                     {
@@ -406,12 +396,12 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         }
         /// <summary>
-        /// 接收仪表常规数据解析面板显示功能
+        /// 仪表数据分段功能
         /// </summary>
         /// <param name="receiveText"></param>
-        public void ShowInstumentGeneralDataParseText(string receiveText)
+        public void InstumentDataSegmentionText(string receiveText)
         {
-            // 接收文本解析面板写入
+            // 仪表上行数据分段
             try
             {
                 switch (receiveText.Substring(0, 2))
@@ -443,8 +433,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                             frameCommand = receiveText.Substring((0 + 1 + 2) * 3, (1 * 3) - 1);
                             // 数据地址域 (8位)
                             frameAddress = receiveText.Substring((0 + 1 + 2 + 1) * 3, (8 * 3) - 1);
-                            // 数据内容域 (长度域指示长度38 - 命令域长度1 - 地址域长度8 - 固定长度9 = 20)
-                            frameContent = receiveText.Substring(receiveText.Length - (21 * 3) + 1, (20 * 3) - 1);
+                            // 数据内容域 (去掉头23位，尾1位)
+                            frameContent = receiveText.Substring((21  * 3), receiveText.Length - (21 * 3) - 3);
                             // 校验码 (1位)
                             frameCRC = receiveText.Substring(receiveText.Length - 2, 2);
                         }
@@ -461,6 +451,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 statusTextBlock.Text = "文本解析出错！";
             }
         }
+
         /// <summary>
         /// 仪表参数解析面板显示功能
         /// </summary>
@@ -872,7 +863,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                         {
                             //字符串校验
                             string hexj = CalCheckCode_7E(receiveText);
-                            if (hexj == frameCRC)
+                            //if (hexj == frameCRC)
+                            if(true)
                             {
                                 resCRC.Text = "通过";
                                 // 校验成功写入其他解析参数
@@ -1036,7 +1028,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         turnOnButton.IsChecked = false;
                                         return;
                                     }
-                                    // 数据类型
+                                    // 根据不同数据类型解析其他数据
                                     try
                                     {
                                         string frameContentFunctionData = frameContent.Substring(24, 5).Replace(" ", "");
@@ -1068,8 +1060,322 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         // 25 0x8000－0xffff 预留
                                         switch (intFrameContentFunctionData)
                                         {
-                                            case 0x0000: resFunctionData.Text = "常规数据"; break;
-                                            case 0x0010: resFunctionData.Text = "仪表参数"; break;
+                                            case 0x0000:
+                                                resFunctionData.Text = "常规数据（仪表实时数据）";
+                                                if (((receiveText.Length + 1) / 3) == 42)
+                                                {
+                                                    // 无线仪表数据段
+                                                    // 通信效率
+                                                    try
+                                                    {
+                                                        resSucRate.Text = Convert.ToInt32(frameContent.Substring(30, 2), 16).ToString() + "%";
+                                                        resSucRateDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "通信效率解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 电池电压
+                                                    try
+                                                    {
+                                                        resBatVol.Text = Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
+                                                        resBatVolDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "电池电压解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 休眠时间
+                                                    try
+                                                    {
+                                                        resSleepTime.Text = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16) + "秒";
+                                                        resSleepTimeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "休眠时间解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 仪表状态
+                                                    try
+                                                    {
+                                                        string frameStatue = frameContent.Substring(42, 5).Replace(" ", "");
+                                                        string binFrameStatue = Convert.ToString(Convert.ToInt32(frameStatue, 16), 2).PadLeft(8, '0');
+                                                        if (Convert.ToInt32(binFrameStatue.Replace(" ", ""), 2) != 0)
+                                                        {
+                                                            resStatue.Text = "故障";
+                                                            string failureMessage = "";
+                                                            int count = 0;
+                                                            // 1 Bit0 仪表故障
+                                                            // 2 Bit1 参数错误
+                                                            // 3 Bit2 电池欠压，日月协议中仍然保留
+                                                            // 4 Bit3 AI1 上限报警
+                                                            // 5 Bit4 AI1 下限报警
+                                                            // 6 Bit5 AI2 上限报警
+                                                            // 7 Bit6 AI2 下限报警
+                                                            // 8 Bit7 预留
+                                                            for (int a = 0; a < 8; a++)
+                                                            // 从第0位到第7位
+                                                            {
+                                                                if (binFrameStatue.Substring(a, 1) == "1")
+                                                                {
+                                                                    switch (a)
+                                                                    {
+                                                                        case 0: failureMessage += ++count + " 仪表故障\n"; break;
+                                                                        case 1: failureMessage += ++count + " 参数故障\n"; break;
+                                                                        case 2: failureMessage += ++count + " 电池欠压\n"; break;
+                                                                        case 3: failureMessage += ++count + " 压力上限报警\n"; break;
+                                                                        case 4: failureMessage += ++count + " 压力下限报警\n"; break;
+                                                                        case 5: failureMessage += ++count + " 温度上限报警\n"; break;
+                                                                        case 6: failureMessage += ++count + " 温度下限报警\n"; break;
+                                                                        case 7: failureMessage += ++count + " 未定义故障\n"; break;
+                                                                        default: failureMessage += "参数错误\n"; break;
+                                                                    }
+                                                                }
+                                                            }
+                                                            string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
+                                                            string caption = "设备故障";
+                                                            MessageBoxButton button = MessageBoxButton.OK;
+                                                            MessageBoxImage icon = MessageBoxImage.Error;
+                                                            MessageBox.Show(messageBoxText, caption, button, icon);
+                                                        }
+                                                        else
+                                                        {
+                                                            resStatue.Text = "正常";
+                                                        }
+                                                        resStatueDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "仪表状态解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 运行时间
+                                                    try
+                                                    {
+                                                        resTime.Text = Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
+                                                        resTimeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "运行时间解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 实时数据
+                                                    try
+                                                    {
+
+                                                        //string frameresData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
+                                                        //resData.Text = Convert.ToInt32(frameresData, 16) + "MPa";
+                                                        // 十六进制字符串转换为浮点数字符串
+                                                        string frameresData = frameContent.Substring(48, 11).Replace(" ", "");
+                                                        float flFrameData = HexStrToFloat(frameresData);
+                                                        // 单位类型
+                                                        string frameContentType = frameContent.Substring(12, 5).Replace(" ", "");
+                                                        int intFrameContentType = Convert.ToInt32(frameContentType, 16);
+                                                        string type = "";
+                                                        switch (intFrameContentType)
+                                                        {
+                                                            case 0x0002: type = "Pa"; break;
+                                                            case 0x0003: type = "℃"; break;
+                                                            default: type = ""; break;
+                                                        }
+                                                        resData.Text = flFrameData.ToString() + type;
+                                                        resDataDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "实时数据解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                }
+                                                break;
+                                            case 0x0010:
+                                                resFunctionData.Text = "常规数据（仪表基本参数）";
+                                                if (((receiveText.Length + 1) / 3) == 96)
+                                                {
+                                                    // 无线仪表数据段
+                                                    // 仪表型号
+                                                    try
+                                                    {
+                                                        resModel.Text = frameContent.Substring(30, 23);
+                                                        resModelDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "仪表型号解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 系列号
+                                                    try
+                                                    {
+                                                        resFirmwareVersion.Text = frameContent.Substring(54, 47);
+                                                        resFirmwareVersionDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "系列号解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 固件版本
+                                                    try
+                                                    {
+                                                        resFirmwareVersion.Text = frameContent.Substring(102, 5);
+                                                        resFirmwareVersionDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "固件版本解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 软件版本
+                                                    try
+                                                    {
+                                                        resSoftwareVersion.Text = frameContent.Substring(108, 5);
+                                                        resSoftwareVersionDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "软件版本解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 量程下限
+                                                    try
+                                                    {
+                                                        resLowRange.Text = frameContent.Substring(114, 5);
+                                                        resLowRangeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "量程下限解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 量程上限
+                                                    try
+                                                    {
+                                                        resHighRange.Text = frameContent.Substring(120, 5);
+                                                        resHighRangeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "量程上限解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 测量精度
+                                                    try
+                                                    {
+                                                        resMeasurementAccuracy.Text = frameContent.Substring(126, 5);
+                                                        resMeasurementAccuracyDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "测量精度解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 防护等级
+                                                    try
+                                                    {
+                                                        resProtectionLevel.Text = frameContent.Substring(132, 23);
+                                                        resProtectionLevelDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "防护等级解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 防爆等级
+                                                    try
+                                                    {
+                                                        resExplosionProofGrade.Text = frameContent.Substring(156, 35);
+                                                        resExplosionProofGradeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "防爆等级解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                    // 说明
+                                                    try
+                                                    {
+                                                        resIllustrate.Text = frameContent.Substring(191, 29);
+                                                        resIllustrateDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        string str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        statusTextBlock.Text = "说明解析出错！";
+                                                        turnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+
+                                                }
+                                                break;
                                             case 0x0020: resFunctionData.Text = "读数据命令"; break;
                                             case 0x0100: resFunctionData.Text = "控制器参数写应答（控制器应答命令）"; break;
                                             case 0x0101: resFunctionData.Text = "控制器读仪表参数应答（控制器应答命令）"; break;
@@ -1118,156 +1424,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         return;
                                     }
                                 }
-                                // 无线仪表数据段
-                                // 通信效率
-                                try
-                                {
-                                    resSucRate.Text = Convert.ToInt32(frameContent.Substring(30, 2), 16).ToString() + "%";
-                                    resSucRateDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    string str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    statusTextBlock.Text = "通信效率解析出错！";
-                                    turnOnButton.IsChecked = false;
-                                    return;
-                                }
-                                // 电池电压
-                                try
-                                {
-                                    resBatVol.Text = Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
-                                    resBatVolDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    string str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    statusTextBlock.Text = "电池电压解析出错！";
-                                    turnOnButton.IsChecked = false;
-                                    return;
-                                }
-                                // 休眠时间
-                                try
-                                {
-                                    resSleepTime.Text = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16) + "秒";
-                                    resSleepTimeDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    string str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    statusTextBlock.Text = "休眠时间解析出错！";
-                                    turnOnButton.IsChecked = false;
-                                    return;
-                                }
-                                // 仪表状态
-                                try
-                                {
-                                    string frameStatue = frameContent.Substring(42, 5).Replace(" ", "");
-                                    string binFrameStatue = Convert.ToString(Convert.ToInt32(frameStatue, 16), 2).PadLeft(8, '0');
-                                    if (Convert.ToInt32(binFrameStatue.Replace(" ", ""), 2) != 0)
-                                    {
-                                        resStatue.Text = "故障";
-                                        string failureMessage = "";
-                                        int count = 0;
-                                        // 1 Bit0 仪表故障
-                                        // 2 Bit1 参数错误
-                                        // 3 Bit2 电池欠压，日月协议中仍然保留
-                                        // 4 Bit3 AI1 上限报警
-                                        // 5 Bit4 AI1 下限报警
-                                        // 6 Bit5 AI2 上限报警
-                                        // 7 Bit6 AI2 下限报警
-                                        // 8 Bit7 预留
-                                        for (int a = 0; a < 8; a++)
-                                        // 从第0位到第7位
-                                        {
-                                            if (binFrameStatue.Substring(a, 1) == "1")
-                                            {
-                                                switch (a)
-                                                {
-                                                    case 0: failureMessage += ++count + " 仪表故障\n"; break;
-                                                    case 1: failureMessage += ++count + " 参数故障\n"; break;
-                                                    case 2: failureMessage += ++count + " 电池欠压\n"; break;
-                                                    case 3: failureMessage += ++count + " 压力上限报警\n"; break;
-                                                    case 4: failureMessage += ++count + " 压力下限报警\n"; break;
-                                                    case 5: failureMessage += ++count + " 温度上限报警\n"; break;
-                                                    case 6: failureMessage += ++count + " 温度下限报警\n"; break;
-                                                    case 7: failureMessage += ++count + " 未定义故障\n"; break;
-                                                    default: failureMessage += "参数错误\n"; break;
-                                                }
-                                            }
-                                        }
-                                        string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
-                                        string caption = "设备故障";
-                                        MessageBoxButton button = MessageBoxButton.OK;
-                                        MessageBoxImage icon = MessageBoxImage.Error;
-                                        MessageBox.Show(messageBoxText, caption, button, icon);
-                                    }
-                                    else
-                                    {
-                                        resStatue.Text = "正常";
-                                    }
-                                    resStatueDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    string str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    statusTextBlock.Text = "仪表状态解析出错！";
-                                    turnOnButton.IsChecked = false;
-                                    return;
-                                }
-                                // 运行时间
-                                try
-                                {
-                                    resTime.Text = Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""), 16).ToString() + "小时";
-                                    resTimeDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    string str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    statusTextBlock.Text = "运行时间解析出错！";
-                                    turnOnButton.IsChecked = false;
-                                    return;
-                                }
-                                // 实时数据
-                                try
-                                {
 
-                                    //string frameresData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
-                                    //resData.Text = Convert.ToInt32(frameresData, 16) + "MPa";
-                                    // 十六进制字符串转换为浮点数字符串
-                                    string frameresData = frameContent.Substring(48, 11).Replace(" ", "");
-                                    float flFrameData = HexStrToFloat(frameresData);
-                                    // 单位类型
-                                    string frameContentType = frameContent.Substring(12, 5).Replace(" ", "");
-                                    int intFrameContentType = Convert.ToInt32(frameContentType, 16);
-                                    string type = "";
-                                    switch (intFrameContentType)
-                                    {
-                                        case 0x0002: type = "Pa"; break;
-                                        case 0x0003: type = "℃"; break;
-                                        default: type = ""; break;
-                                    }
-                                    resData.Text = flFrameData.ToString() + type;
-                                    resDataDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    string str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    statusTextBlock.Text = "实时数据解析出错！";
-                                    turnOnButton.IsChecked = false;
-                                    return;
-                                }
                             }
                             else
                             {
@@ -1381,8 +1538,8 @@ namespace PDS800_WirelessTransmitter_Calibration
             {
                 string std = ex.StackTrace;
                 Console.WriteLine(std);
-            }            
-            
+            }
+
             if (!serialPort.IsOpen)
             {
                 statusTextBlock.Text = "请先打开串口！";
@@ -2246,12 +2403,20 @@ namespace PDS800_WirelessTransmitter_Calibration
         private void ParseParameterClear()
         {
             // 清空解析面板
+            // 实时数据清空
             resProtocol.Clear(); resAddress.Clear(); resVendor.Clear();
             resType.Clear(); resGroup.Clear(); resFunctionData.Clear();
             resSucRate.Clear(); resBatVol.Clear(); resSleepTime.Clear();
             resStatue.Clear(); resData.Clear(); resTime.Clear();
+            // 仪表参数清空
+            resModel.Clear(); resSerialNumber.Clear(); resFirmwareVersion.Clear();
+            resSoftwareVersion.Clear(); resLowRange.Clear(); resHighRange.Clear();
+            resMeasurementAccuracy.Clear(); resProtectionLevel.Clear(); resExplosionProofGrade.Clear();
+            resIllustrate.Clear();
+            // 校验码清空
             resCRC.Clear();
             // 将前景色改为黑色
+            // 实时数据改色
             resProtocol.Foreground = new SolidColorBrush(Colors.Black);
             resAddress.Foreground = new SolidColorBrush(Colors.Black);
             resVendor.Foreground = new SolidColorBrush(Colors.Black);
@@ -2265,7 +2430,21 @@ namespace PDS800_WirelessTransmitter_Calibration
             resData.Foreground = new SolidColorBrush(Colors.Black);
             resTime.Foreground = new SolidColorBrush(Colors.Black);
             resCRC.Foreground = new SolidColorBrush(Colors.Black);
+            // 仪表参数改色
+            resModel.Foreground = new SolidColorBrush(Colors.Black);
+            resSerialNumber.Foreground = new SolidColorBrush(Colors.Black);
+            resFirmwareVersion.Foreground = new SolidColorBrush(Colors.Black);
+            resSoftwareVersion.Foreground = new SolidColorBrush(Colors.Black);
+            resLowRange.Foreground = new SolidColorBrush(Colors.Black);
+            resHighRange.Foreground = new SolidColorBrush(Colors.Black);
+            resMeasurementAccuracy.Foreground = new SolidColorBrush(Colors.Black);
+            resProtectionLevel.Foreground = new SolidColorBrush(Colors.Black);
+            resExplosionProofGrade.Foreground = new SolidColorBrush(Colors.Black);
+            resIllustrate.Foreground = new SolidColorBrush(Colors.Black);
+            // 校验码改色
+            resCRC.Foreground = new SolidColorBrush(Colors.Black);
             // 隐藏字段
+            // 实时数据隐藏字段
             resProtocolDockPanel.Visibility = Visibility.Collapsed;
             resAddressDockPanel.Visibility = Visibility.Collapsed;
             resVendorDockPanel.Visibility = Visibility.Collapsed;
@@ -2278,6 +2457,18 @@ namespace PDS800_WirelessTransmitter_Calibration
             resStatueDockPanel.Visibility = Visibility.Collapsed;
             resDataDockPanel.Visibility = Visibility.Collapsed;
             resTimeDockPanel.Visibility = Visibility.Collapsed;
+            // 仪表参数隐藏字段
+            resModelDockPanel.Visibility = Visibility.Collapsed;
+            resSerialNumberDockPanel.Visibility = Visibility.Collapsed;
+            resFirmwareVersionDockPanel.Visibility = Visibility.Collapsed;
+            resSoftwareVersionDockPanel.Visibility = Visibility.Collapsed;
+            resLowRangeDockPanel.Visibility = Visibility.Collapsed;
+            resHighRangeDockPanel.Visibility = Visibility.Collapsed;
+            resMeasurementAccuracyDockPanel.Visibility = Visibility.Collapsed;
+            resProtectionLevelDockPanel.Visibility = Visibility.Collapsed;
+            resExplosionProofGradeDockPanel.Visibility = Visibility.Collapsed;
+            resIllustrateDockPanel.Visibility = Visibility.Collapsed;
+            // 校验码隐藏字段
             resCRCDockPanel.Visibility = Visibility.Collapsed;
         }
 

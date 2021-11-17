@@ -10,17 +10,22 @@
              MinHeight="540" MinWidth="780" 
              Background="White">
 
-    <!--自定义命令--><!--
+    <!--自定义命令-->
+    <!--
     <UserControl.Resources>
         <RoutedUICommand x:Key="sendTextKey"/>
     </UserControl.Resources>
 
-    --><!--自定义命令绑定--><!--
+    -->
+    <!--自定义命令绑定-->
+    <!--
     <UserControl.InputBindings>
         <KeyBinding Modifiers="Ctrl" Key="Enter" Command="{StaticResource sendTextKey}"/>
     </UserControl.InputBindings>
 
-    --><!--设置命令--><!--
+    -->
+    <!--设置命令-->
+    <!--
     <UserControl.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Open" Executed="FileOpen"/>
         <CommandBinding Command="ApplicationCommands.Save" Executed="FileSave"/>
@@ -257,6 +262,7 @@
                         <Label Content="数据类型" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resFunctionData" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
+                    <!--仪表实时数据解析-->
                     <DockPanel x:Name="resSucRateDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="通信效率" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resSucRate" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
@@ -281,6 +287,49 @@
                         <Label Content="实时数据" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resData" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
                     </DockPanel>
+                    <!--仪表基本参数解析-->
+                    <DockPanel x:Name="resModelDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="仪表型号" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resModel" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <DockPanel x:Name="resSerialNumberDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="系列号" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resSerialNumber" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <DockPanel x:Name="resFirmwareVersionDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="固件版本" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resFirmwareVersion" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <DockPanel x:Name="resSoftwareVersionDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="软件版本" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resSoftwareVersion" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <DockPanel x:Name="resLowRangeDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="量程下限" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resLowRange" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <DockPanel x:Name="resHighRangeDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="量程上限" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resHighRange" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <DockPanel x:Name="resMeasurementAccuracyDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="测量精度" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resMeasurementAccuracy" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <DockPanel x:Name="resProtectionLevelDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="防护等级" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resProtectionLevel" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <DockPanel x:Name="resExplosionProofGradeDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="防爆等级" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resExplosionProofGrade" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <DockPanel x:Name="resIllustrateDockPanel" Margin="5,0" Visibility="Collapsed">
+                        <Label Content="说明" VerticalAlignment="Center" Width="80"/>
+                        <TextBox x:Name="resIllustrate" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
+                    </DockPanel>
+                    <!--校验码解析-->
+
                     <DockPanel x:Name="resCRCDockPanel" Margin="5,0" Visibility="Collapsed">
                         <Label Content="CRC校验" VerticalAlignment="Center" Width="80"/>
                         <TextBox x:Name="resCRC" IsReadOnly="True" HorizontalContentAlignment="Center" VerticalAlignment="Center" MinWidth="80"/>
