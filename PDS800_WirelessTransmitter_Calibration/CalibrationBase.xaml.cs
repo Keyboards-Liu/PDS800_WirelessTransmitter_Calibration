@@ -59,6 +59,8 @@ namespace PDS800_WirelessTransmitter_Calibration
         private static string frameCommand;
         // 数据地址域
         private static string frameAddress;
+        // 非解析数据
+        private static string frameUnparsed;
         // 数据内容域
         private static string frameContent;
         // 校验码
@@ -101,7 +103,6 @@ namespace PDS800_WirelessTransmitter_Calibration
             autoSendTimer.Interval = new TimeSpan(0, 0, 0, 0, Convert.ToInt32(autoSendCycleTextBox.Text));
             // 设置状态栏提示
             statusTextBlock.Text = "准备就绪";
-            Plot_Loaded();
         }
         /// <summary>
         /// 显示当前时间
@@ -236,6 +237,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                 // 清空缓冲区
                 serialPort.DiscardInBuffer();
                 serialPort.DiscardOutBuffer();
+                // 开始作图
+                Plot_Loaded();
             }
             catch (Exception ex)
             {
@@ -331,7 +334,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         ShowReceiveData(receiveText);
                                         InstumentDataSegmentionText(receiveText);
                                         ShowParseParameter(receiveText);
-                                        SendRegularDataConfirmationFramereceiveText(receiveText);
+                                        SendConfirmationFrame(receiveText);
                                     }));
 
                                 }
@@ -354,14 +357,23 @@ namespace PDS800_WirelessTransmitter_Calibration
                     Console.WriteLine(str);
                 }
             }
-
-
         }
-
-        private void SendRegularDataConfirmationFramereceiveText(string receiveText)
+        /// <summary>
+        /// 自动发送确认帧
+        /// </summary>
+        /// <param name="receiveText"></param>
+        private void SendConfirmationFrame(string receiveText)
         {
-            string str = RegularDataConfirmationFrame();
-            SerialPortSend(str);
+            if (((receiveText.Length + 1) / 3) == 42)
+            {
+                string str = RegularDataConfirmationFrame();
+                SerialPortSend(str);
+            }
+            else if (((receiveText.Length + 1) / 3) == 96)
+            {
+                string str = BasicInformationConfirmationFrame();
+                SerialPortSend(str);
+            }
         }
 
         public static void PrintValues(IEnumerable myCollection)
@@ -433,8 +445,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                             frameCommand = receiveText.Substring((0 + 1 + 2) * 3, (1 * 3) - 1);
                             // 数据地址域 (8位)
                             frameAddress = receiveText.Substring((0 + 1 + 2 + 1) * 3, (8 * 3) - 1);
-                            // 数据内容域 (去掉头23位，尾1位)
-                            frameContent = receiveText.Substring((21  * 3), receiveText.Length - (21 * 3) - 3);
+                            // 非解析帧 (9位)
+                            frameUnparsed = receiveText.Substring((0 + 1 + 2 + 1 + 8) * 3, (9 * 3) - 1);
+                            // 数据内容域 (去掉头21位，尾1位)
+                            frameContent = receiveText.Substring((21 * 3), receiveText.Length - (21 * 3) - 3);
                             // 校验码 (1位)
                             frameCRC = receiveText.Substring(receiveText.Length - 2, 2);
                         }
@@ -840,6 +854,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     string frameresData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
                                     resData.Text = frameresData + "MPa";
                                     resDataDockPanel.Visibility = Visibility.Visible;
+
                                 }
                                 catch (Exception ex)
                                 {
@@ -864,7 +879,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                             //字符串校验
                             string hexj = CalCheckCode_7E(receiveText);
                             //if (hexj == frameCRC)
-                            if(true)
+                            if (true)
                             {
                                 resCRC.Text = "通过";
                                 // 校验成功写入其他解析参数
@@ -1192,6 +1207,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                         // 十六进制字符串转换为浮点数字符串
                                                         string frameresData = frameContent.Substring(48, 11).Replace(" ", "");
                                                         float flFrameData = HexStrToFloat(frameresData);
+                                                        realTimeData = flFrameData;
                                                         // 单位类型
                                                         string frameContentType = frameContent.Substring(12, 5).Replace(" ", "");
                                                         int intFrameContentType = Convert.ToInt32(frameContentType, 16);
@@ -1204,6 +1220,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                         }
                                                         resData.Text = flFrameData.ToString() + type;
                                                         resDataDockPanel.Visibility = Visibility.Visible;
+                                                        AnimatedPlot();
                                                     }
                                                     catch (Exception ex)
                                                     {
@@ -1833,7 +1850,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                             // 写操作数据区
                             string strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text, 16)).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             // 合成数据域
-                            string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
                             // 计算长度域（包含命令域）
                             int intLength = (strContent.Length + 1) / 3;
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
@@ -1896,7 +1913,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strFunctionData = "01 01";
                             string strHandlerContent = "";
                             // 合成数据域
-                            string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
                             // 计算长度域（包含命令域）
                             int intLength = (strContent.Length + 1) / 3;
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
@@ -1921,9 +1938,6 @@ namespace PDS800_WirelessTransmitter_Calibration
                 return "";
             }
         }
-
-
-
         /// <summary>
         /// 建立连接处理程序
         /// </summary>
@@ -1997,7 +2011,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                         string strFunctionData = "00 80";
                         string strHandlerContent = "F0";
                         // 合成数据域
-                        string strContent = strCommand + " " + strAddress + " " + frameContent.Substring(0, 23) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
                         // 计算长度域（包含命令域）
                         int intLength = (strContent.Length + 1) / 3;
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
@@ -2094,7 +2108,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                         // 写操作数据区
                         string strHandlerContent = "F1 " + calibrationInstrumentModelTextBox.Text.Trim() + " " + calibrationSerialNumberTextBox.Text.Trim() + " " + calibrationIPRatingTextBox.Text.Trim() + " " + calibrationExplosionProofLevelTextBox.Text.Trim() + " " + calibrationInstructionsTextBox.Text.Trim();
                         // 合成数据域
-                        string strContent = strCommand + " " + frameAddress + " FF FE E8 E8 00 11 18 57 01 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
                         // 计算长度域
                         int intLength = (strContent.Length + 1) / 3;
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
@@ -2177,7 +2191,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                         // 写操作数据区
                         string strHandlerContent = "F2 " + calibrationCommandNumberTextBox.Text.Trim() + " " + calibrationUnitTextBox.Text.Trim();
                         // 合成数据域
-                        string strContent = strCommand + " " + frameAddress + " FF FE E8 E8 00 11 18 57 01 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                        string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
                         // 计算长度域
                         int intLength = (strContent.Length + 1) / 3;
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
@@ -2242,11 +2256,11 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 发送地址
             strAddress = frameAddress;
             // 协议和厂商号
-            strProtocolVendor = frameContent.Substring(27, 11);
+            strProtocolVendor = frameContent.Substring(0, 11);
             // 仪表类型：手操器
             strHandler = "1F 10";
             // 组号表号
-            strGroup = frameContent.Substring(45, 5);
+            strGroup = frameContent.Substring(18, 5);
         }
 
         #endregion
@@ -2575,23 +2589,16 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// 画折线图
         /// </summary>
         private ObservableDataSource<Point> dataSource = new ObservableDataSource<Point>();
-        private DispatcherTimer timer = new DispatcherTimer();
-        private int i = 0;
+        private int i = 1;
         double y = 0.0;
 
 
-        private void AnimatedPlot(object sender, EventArgs e)
+        private void AnimatedPlot()
         {
-            if (frameContent != null)
-            {
-                timer.Interval = TimeSpan.FromSeconds(Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16));
-            }
-
             double x = i;
             try
             {
-                Random rd = new Random();
-                y = rd.Next(1000, 2000) / 100;
+                y = realTimeData;
             }
             catch (Exception ex)
             {
@@ -2604,16 +2611,16 @@ namespace PDS800_WirelessTransmitter_Calibration
             string strx = DateTime.Now.ToString("HH:mm:ss");
             dataUsageText.Text = y.ToString();
 
-            if (i >= 50)
+            if (i >= 5)
             {
-                plotter.Viewport.Visible = new System.Windows.Rect(i - 50, -1, 50, 24);
+                plotter.Viewport.Visible = new System.Windows.Rect(i - 5, -1, 5, 24);
             }
             else
             {
-                plotter.Viewport.Visible = new System.Windows.Rect(0, -1, 50, 24);
+                plotter.Viewport.Visible = new System.Windows.Rect(0, -1, 5, 24);
             }
             i++;
-
+            plotter.Viewport.FitToView();
         }
 
 
@@ -2621,10 +2628,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         {
             plotter.AxisGrid.Visibility = Visibility.Hidden;
             plotter.AddLineGraph(dataSource, Colors.Blue, 2, "实时数据");
-            plotter.Viewport.Visible = new Rect(0, -1, 50, 24);
-            timer.Interval = TimeSpan.FromSeconds(0.1);
-            timer.Tick += new EventHandler(AnimatedPlot);
-            timer.IsEnabled = true;
+            plotter.Viewport.Visible = new Rect(0, -1, 5, 24);
             plotter.Viewport.FitToView();
         }
 
