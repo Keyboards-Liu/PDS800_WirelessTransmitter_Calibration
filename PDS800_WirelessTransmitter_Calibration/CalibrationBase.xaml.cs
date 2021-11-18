@@ -238,6 +238,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 serialPort.DiscardInBuffer();
                 serialPort.DiscardOutBuffer();
                 // 开始作图
+                dataSource = new ObservableDataSource<Point>();
                 Plot_Loaded();
             }
             catch (Exception ex)
@@ -268,6 +269,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                 statusTextBlock.Text = "串口已关闭";
                 serialPortStatusEllipse.Fill = Brushes.Gray;
                 turnOnButton.Content = "打开串口";
+                // 关闭作图
+                plotter.Children.RemoveAll(typeof(LineGraph));
+                plotPointX = 1;
             }
             catch (Exception ex)
             {
@@ -290,12 +294,23 @@ namespace PDS800_WirelessTransmitter_Calibration
         {
             Thread.Sleep(70);
             receiveCount++;
+            string receiveText;
             // Console.WriteLine("接收" + receiveCount + "次");
             // 读取缓冲区内所有字节
-            byte[] receiveBuffer = new byte[serialPort.BytesToRead];
-            serialPort.Read(receiveBuffer, 0, receiveBuffer.Length);
-            // 字符串转换为十六进制字符串
-            string receiveText = BytestoHexStr(receiveBuffer);
+            try
+            {
+                byte[] receiveBuffer = new byte[serialPort.BytesToRead];
+                serialPort.Read(receiveBuffer, 0, receiveBuffer.Length);
+                // 字符串转换为十六进制字符串
+                receiveText = BytestoHexStr(receiveBuffer);
+            }
+            catch (Exception ex)
+            {
+                string str = ex.StackTrace;
+                Console.WriteLine(str);
+                receiveText = "";
+            }
+
             // Console.WriteLine(receiveText);
             // 传参 (Invoke方法暂停工作线程, BeginInvoke方法不暂停)
             if (receiveText.Length >= 2)
@@ -313,6 +328,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         ShowReceiveData(receiveText);
                                         InstumentDataSegmentionText(receiveText);
                                         ShowParseParameter(receiveText);
+                                        SendConfirmationFrame(receiveText);
                                     }));
                                 }
                                 else if (((receiveText.Length + 1) / 3) != 27 && receiveText.Replace(" ", "") != "")
@@ -429,8 +445,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                             // 数据域 (长度域指示长度)
                             // 数据地址域 (2位)
                             frameAddress = receiveText.Substring((0 + 1 + 1 + 2) * 3, (2 * 3) - 1);
-                            // 数据内容域 (长度域指示长度 - 2)
-                            frameContent = receiveText.Substring((0 + 1 + 1 + 2 + 2) * 3, ((Convert.ToInt32(frameLength, 16) - 2) * 3) - 1);
+                            // 数据内容域 (去掉头6位，尾1位)
+                            frameContent = receiveText.Substring((6 * 3), receiveText.Length - (6 * 3) - 3);
                             // 校验码 (1位)
                             frameCRC = receiveText.Substring(receiveText.Length - 2, 2);
                         }
@@ -851,9 +867,15 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
 
-                                    string frameresData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
-                                    resData.Text = frameresData + "MPa";
+                                    int frameresData = Convert.ToInt32(frameContent.Substring(54, 5).Replace(" ", ""), 16);
+                                    resData.Text = frameresData + "KPa";
                                     resDataDockPanel.Visibility = Visibility.Visible;
+                                    try
+                                    {
+                                        realTimeData = Convert.ToDouble(frameresData);
+                                    }
+                                    catch { }
+                                    AnimatedPlot();
 
                                 }
                                 catch (Exception ex)
@@ -878,8 +900,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                         {
                             //字符串校验
                             string hexj = CalCheckCode_7E(receiveText);
-                            //if (hexj == frameCRC)
-                            if (true)
+                            if (hexj == frameCRC)
+                            //if (true)
                             {
                                 resCRC.Text = "通过";
                                 // 校验成功写入其他解析参数
@@ -2589,16 +2611,16 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// 画折线图
         /// </summary>
         private ObservableDataSource<Point> dataSource = new ObservableDataSource<Point>();
-        private int i = 1;
-        double y = 0.0;
+        private int plotPointX = 1;
+        double plotPointY = 0.0;
 
 
         private void AnimatedPlot()
         {
-            double x = i;
+            double x = plotPointX;
             try
             {
-                y = realTimeData;
+                plotPointY = realTimeData;
             }
             catch (Exception ex)
             {
@@ -2606,21 +2628,21 @@ namespace PDS800_WirelessTransmitter_Calibration
                 Console.WriteLine(str);
             }
 
-            Point point = new Point(x, y);
-            dataSource.AppendAsync(base.Dispatcher, point);
+            Point point = new Point(x, plotPointY);
+            dataSource.AppendAsync(Dispatcher, point);
             string strx = DateTime.Now.ToString("HH:mm:ss");
-            dataUsageText.Text = y.ToString();
+            dataUsageText.Text = plotPointY.ToString();
 
-            if (i >= 5)
-            {
-                plotter.Viewport.Visible = new System.Windows.Rect(i - 5, -1, 5, 24);
-            }
-            else
-            {
-                plotter.Viewport.Visible = new System.Windows.Rect(0, -1, 5, 24);
-            }
-            i++;
+            //if (plotPointX >= 5)
+            //{
+            //    plotter.Viewport.Visible = new Rect(plotPointX - 5, -1, 5, 24);
+            //}
+            //else
+            //{
+            //    plotter.Viewport.Visible = new Rect(0, -1, 5, 24);
+            //}
             plotter.Viewport.FitToView();
+            plotPointX++;
         }
 
 
