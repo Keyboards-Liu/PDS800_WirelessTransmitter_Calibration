@@ -132,7 +132,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <CheckBox x:Name="autoClearCheckBox" Margin="5,5,10,5" Content="自动清空" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" IsChecked="True"/>
+                        <CheckBox x:Name="autoClearCheckBox" Margin="5,5,10,5" Content="自动清空" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch"/>
                         <Button Command="Save" Content="保存文件" Margin="5,5,10,5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                     </StackPanel>
                     <Button x:Name="clearReceiveButton"  Grid.Column="1" Margin="5" Content="清空接收区" Click="ClearReceiveButton_Click"/>

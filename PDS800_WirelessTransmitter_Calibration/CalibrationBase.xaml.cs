@@ -237,7 +237,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 // 清空缓冲区
                 serialPort.DiscardInBuffer();
                 serialPort.DiscardOutBuffer();
-                // 开始作图
+                // 使能作图区
                 dataSource = new ObservableDataSource<Point>();
                 Plot_Loaded();
             }
@@ -287,6 +287,8 @@ namespace PDS800_WirelessTransmitter_Calibration
         #endregion
 
         #region 串口数据接收处理/窗口显示清空功能
+        string brokenFrameEnd = "";
+        string receiveText = "";
         /// <summary>
         /// 接收串口数据, 转换为16进制字符串, 传递到显示功能
         /// </summary>
@@ -295,7 +297,6 @@ namespace PDS800_WirelessTransmitter_Calibration
         public void ReceiveData(object sender, SerialDataReceivedEventArgs e)
         {
             receiveCount++;
-            string receiveText;
             // Console.WriteLine("接收" + receiveCount + "次");
             // 读取缓冲区内所有字节
             try
@@ -311,23 +312,48 @@ namespace PDS800_WirelessTransmitter_Calibration
                 Console.WriteLine(str);
                 receiveText = "";
             }
+            // 加入上一次断帧尾数
+            receiveText = (brokenFrameEnd + " " + receiveText).Trim(' ');
+            // 对字符串进行断帧
+            string[] segmentationStr = MessageSegmentationExtraction(receiveText);
+            // 断帧情况判断
+            switch (segmentationStr.Length)
+            {
+                // 如果只有一帧，要不是空帧，要不是废帧
+                case 1:
+                    brokenFrameEnd = segmentationStr[0];
+                    break;
+                // 如果有两帧，只有一个头帧和一个可用帧
+                case 2:
+                    AvailablMessageHandler(segmentationStr[1]);
+                    break;
+                // 如果有多于三帧，则头帧，可用帧，尾帧都有
+                default:
+                    string[] useStr = new string[segmentationStr.Length - 2];
+                    Array.Copy(segmentationStr, 1, useStr, 0, segmentationStr.Length - 2);
+                    foreach (var item in useStr)
+                    {
+                        AvailablMessageHandler(item);
+                    }
+                    brokenFrameEnd = segmentationStr[segmentationStr.Length - 1];
+                    break;
+            }
 
-            // Console.WriteLine(receiveText);
-            // 传参 (Invoke方法暂停工作线程, BeginInvoke方法不暂停)
+
+            //// 传参 (Invoke方法暂停工作线程, BeginInvoke方法不暂停)
+            //AvailablMessageHandler(receiveText);
+        }
+        /// <summary>
+        /// 根据帧头和内容不同进行不同方法处理
+        /// </summary>
+        /// <param name="receiveText"></param>
+        /// <returns></returns>
+        private void AvailablMessageHandler(string receiveText)
+        {
             if (receiveText.Length >= 2)
             {
                 try
                 {
-                    Console.WriteLine(receiveText);
-                    for (int i = 0; i < (receiveText.Length + 1) / 3; i++)
-                    {
-                        if (receiveText.Substring(i * 3, 2) == "FE" || receiveText.Substring(i * 3, 2) == "7E")
-                        {
-                            receiveText = receiveText.Substring(i * 3, receiveText.Length - (i * 3 ));
-                            break;
-                        }
-                    }
-
                     switch (receiveText.Substring(0, 2))
                     {
                         case "FE":
@@ -393,6 +419,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 }
             }
         }
+
         /// <summary>
         /// 自动发送确认帧
         /// </summary>
@@ -918,6 +945,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                 }
                                             }
                                         }
+                                        statusTextBlock.Text = failureMessage;
                                         //string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
                                         //string caption = "设备故障";
                                         //MessageBoxButton button = MessageBoxButton.OK;
@@ -1275,11 +1303,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                                     }
                                                                 }
                                                             }
-                                                            string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
-                                                            string caption = "设备故障";
-                                                            MessageBoxButton button = MessageBoxButton.OK;
-                                                            MessageBoxImage icon = MessageBoxImage.Error;
-                                                            MessageBox.Show(messageBoxText, caption, button, icon);
+                                                            statusTextBlock.Text = failureMessage;
+                                                            //string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
+                                                            //string caption = "设备故障";
+                                                            //MessageBoxButton button = MessageBoxButton.OK;
+                                                            //MessageBoxImage icon = MessageBoxImage.Error;
+                                                            //MessageBox.Show(messageBoxText, caption, button, icon);
                                                         }
                                                         else
                                                         {
@@ -2297,7 +2326,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                         // 标定数据
                         string calibrationParameters = FloatStrToHexStr(calibrationParametersContentTextBox.Text);
                         // 写操作数据区
-                        string strHandlerContent = "F2 " + calibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " + calibrationUnitTextBox.Text.Trim() + " " + calibrationParameters ;
+                        string strHandlerContent = "F2 " + calibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " + calibrationUnitTextBox.Text.Trim() + " " + calibrationParameters;
                         // 合成数据域
                         string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
                         // 计算长度域
@@ -2320,7 +2349,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                         // 标定数据
                         string calibrationParameters = FloatStrToHexStr(calibrationParametersContentTextBox.Text);
                         // 写操作数据区
-                        string strHandlerContent = "F2 " + calibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " + calibrationUnitTextBox.Text.Trim() + " " + calibrationParameters ;
+                        string strHandlerContent = "F2 " + calibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " + calibrationUnitTextBox.Text.Trim() + " " + calibrationParameters;
                         // 合成数据域
                         string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
                         // 计算长度域
@@ -2396,6 +2425,106 @@ namespace PDS800_WirelessTransmitter_Calibration
         #endregion
 
         #region 其他方法
+        /// <summary>
+        /// 对十六进制报文字符串进行分割
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns>第0位为头字节，第1至length - 2位为可用字节，第length - 1位为尾字节</returns>
+        private static string[] MessageSegmentationExtraction(string str)
+        {
+            string[] sepStr = str.Split(' ');
+            string handleStr = "";
+            string[] sepHandleStr;
+            string tmpstr = "";
+            int mantissaStartFrame = 0;
+            // 定义输出格式
+            int outPutStrTag = 0;
+            string[] outPutStr = new string[50];
+            // 寻找可用报文
+            for (int i = 0; i < sepStr.Length; i++)
+            {
+                // 先判断帧头
+                switch (sepStr[i])
+                {
+                    case "FE":
+                        handleStr = str.Substring(i * 3, str.Length - i * 3);
+                        sepHandleStr = handleStr.Split(' ');
+                        // 通过长度域判断是否为完整报文,
+                        tmpstr = sepHandleStr[1];
+                        if (sepHandleStr.Length >= 5 && sepHandleStr.Length >= Convert.ToInt32(tmpstr, 16) + 5)
+                        {
+                            string[] useFrame = new string[Convert.ToInt32(sepHandleStr[1], 16) + 5];
+                            Array.Copy(sepHandleStr, useFrame, Convert.ToInt32(sepHandleStr[1], 16) + 5);
+                            string useFrameStr = string.Join(" ", useFrame);
+                            // 提取头帧（如果有）
+                            if (outPutStrTag == 0 && i != 0)
+                            {
+                                string[] headFrame = new string[i];
+                                Array.Copy(sepStr, headFrame, i);
+                                outPutStr.SetValue(string.Join(" ", headFrame), 0);
+                            }
+                            // 提取可用帧
+                            outPutStr.SetValue(useFrameStr, ++outPutStrTag);
+                            i = i + Convert.ToInt32(sepHandleStr[1], 16) + 4;
+                            mantissaStartFrame = i + 1;
+                        }
+                        break;
+                    case "7E":
+                        handleStr = str.Substring(i * 3, str.Length - i * 3);
+                        sepHandleStr = handleStr.Split(' ');
+                        // 通过长度域判断是否为完整报文
+                        if (sepHandleStr.Length >= 5)
+                        {
+                            tmpstr = sepHandleStr[1] + sepHandleStr[2];
+                        }
+                        if (sepHandleStr.Length >= 5 && sepHandleStr.Length >= Convert.ToInt32(sepHandleStr[1] + sepHandleStr[2], 16) + 4)
+                        {
+                            string[] a = new string[Convert.ToInt32(tmpstr, 16) + 4];
+                            Array.Copy(sepHandleStr, a, Convert.ToInt32(tmpstr, 16) + 4);
+                            string useFrameStr = string.Join(" ", a);
+                            // 提取头帧（如果有）
+                            if (outPutStrTag == 0 && i != 0)
+                            {
+                                string[] headFrame = new string[i];
+                                Array.Copy(sepStr, headFrame, i);
+                                outPutStr.SetValue(string.Join(" ", headFrame), 0);
+                            }
+                            // 提取可用帧
+                            outPutStr.SetValue(useFrameStr, ++outPutStrTag);
+                            i = i + Convert.ToInt32(tmpstr, 16) + 3;
+                            mantissaStartFrame = i + 1;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            // 提取尾帧
+            if (mantissaStartFrame < sepStr.Length)
+            {
+                outPutStr.SetValue(str.Substring(mantissaStartFrame * 3, str.Length - mantissaStartFrame * 3), outPutStrTag + 1);
+
+            }
+            Console.WriteLine();
+            if (outPutStrTag == 0)
+            {
+                string[] useOutPutStr = new string[1];
+                useOutPutStr.SetValue(str, 0);
+                return useOutPutStr;
+            }
+            else if (outPutStr[0] == null)
+            {
+                outPutStr = outPutStr.Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                string[] useOutPutStr = new string[outPutStr.Length + 1];
+                Array.Copy(outPutStr, 0, useOutPutStr, 1, outPutStr.Length);
+                return useOutPutStr;
+            }
+            else
+            {
+                outPutStr = outPutStr.Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                return outPutStr;
+            }
+        }
         /// <summary>
         /// 二进制字符串转换为十六进制字符串并格式化
         /// </summary>
