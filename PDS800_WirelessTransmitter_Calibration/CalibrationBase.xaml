@@ -340,6 +340,27 @@
 
             <!--设备描述标定信息-->
             <TabControl Grid.Row="2" Margin="5" BorderBrush="Gray" >
+                <TabItem Header="实时数据">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="dataUsageText" Margin="10,10,0,0"
+                       FontSize="15"/>
+                        </StackPanel>
+                        <d3:ChartPlotter x:Name="plotter" Margin="10,10,20,10" Grid.Row="1">
+                            <d3:ChartPlotter.VerticalAxis>
+                                <d3:VerticalIntegerAxis />
+                            </d3:ChartPlotter.VerticalAxis>
+
+                            <d3:ChartPlotter.HorizontalAxis>
+                                <d3:HorizontalIntegerAxis />
+                            </d3:ChartPlotter.HorizontalAxis>
+
+                        </d3:ChartPlotter>
+                    </Grid>
+                </TabItem>
                 <TabItem Header="描述标定" >
                     <ScrollViewer>
                         <WrapPanel VerticalAlignment="Center">
@@ -374,47 +395,28 @@
                     <WrapPanel VerticalAlignment="Center">
                         <DockPanel Margin="5,0">
                             <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="标定参数" Width="120"/>
-                            <ComboBox Height="24" Margin="0,5" x:Name="calibrationParametersComboBox" SelectedIndex="0" MinWidth="240" SelectionChanged="CalibrationParametersComboBox_SelectionChanged">
+                            <ComboBox Height="24" Margin="0,5" x:Name="calibrationParametersComboBox" SelectedIndex="0" MinWidth="240">
                                 <ComboBoxItem Content="0x50，下限标定"/>
                                 <ComboBoxItem Content="0x51，上限标定（加压）"/>
                                 <ComboBoxItem Content="0x52，置零点（SetZero）"/>
-                                <ComboBoxItem Content="0x53，设量程上限"/>
-                                <ComboBoxItem Content="0x54，设量程下限"/>
+                                <ComboBoxItem Content="0x53，设量程下限"/>
+                                <ComboBoxItem Content="0x54，设量程上限"/>
                                 <ComboBoxItem Content="0x55，显示单位"/>
                             </ComboBox>
                         </DockPanel>
 
-                        <DockPanel Margin="5,0">
-                            <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="命令号（1byte）" Width="120"/>
-                            <TextBox x:Name="calibrationCommandNumberTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
-                        </DockPanel>
+
                         <DockPanel Margin="5,0">
                             <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="单位（1byte）" Width="120"/>
-                            <TextBox x:Name="calibrationUnitTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
+                            <TextBox x:Name="calibrationUnitTextBox" Margin="0" Text="04" MinWidth="120" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <DockPanel Margin="5,0">
+                            <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="标定数据" Width="120"/>
+                            <TextBox x:Name="calibrationParametersContentTextBox" Margin="0" Text="00" MinWidth="120" VerticalAlignment="Center"/>
                         </DockPanel>
                     </WrapPanel>
                 </TabItem>
-                <TabItem Header="实时数据">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="dataUsageText" Margin="10,10,0,0"
-                       FontSize="15"/>
-                        </StackPanel>
-                        <d3:ChartPlotter x:Name="plotter" Margin="10,10,20,10" Grid.Row="1">
-                            <d3:ChartPlotter.VerticalAxis>
-                                <d3:VerticalIntegerAxis />
-                            </d3:ChartPlotter.VerticalAxis>
-
-                            <d3:ChartPlotter.HorizontalAxis>
-                                <d3:HorizontalIntegerAxis />
-                            </d3:ChartPlotter.HorizontalAxis>
-
-                        </d3:ChartPlotter>
-                    </Grid>
-                </TabItem>
+                
             </TabControl>
             <!--发送文本面板-->
             <GroupBox Grid.Row="3" Grid.ColumnSpan="2" Header="发送文本面板" Margin="5" BorderBrush="Gray">
