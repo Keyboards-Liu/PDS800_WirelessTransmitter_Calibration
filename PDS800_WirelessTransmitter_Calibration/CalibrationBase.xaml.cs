@@ -17,6 +17,7 @@ using System.Collections;
 using System.Diagnostics;
 using Microsoft.Research.DynamicDataDisplay.DataSources;
 using Microsoft.Research.DynamicDataDisplay;
+using System.Reflection;
 
 namespace PDS800_WirelessTransmitter_Calibration
 {
@@ -43,28 +44,28 @@ namespace PDS800_WirelessTransmitter_Calibration
         // 时刻
         private string timeStr = "";
         //// 发送和接收队列
-        //private static Queue receiveData = new Queue();
-        //private static Queue sendData = new Queue();
+        //private Queue receiveData = new Queue();
+        //private Queue sendData = new Queue();
         // 发送和接收字节数
-        private static uint receiveBytesCount = 0;
-        private static uint sendBytesCount = 0;
+        private uint receiveBytesCount = 0;
+        private uint sendBytesCount = 0;
         // 发送和接收次数
-        private static uint receiveCount = 0;
-        private static uint sendCount = 0;
+        private uint receiveCount = 0;
+        private uint sendCount = 0;
         // 帧头
-        private static string frameHeader;
+        private string frameHeader;
         // 长度域
-        private static string frameLength;
+        private string frameLength;
         // 命令域
-        private static string frameCommand;
+        private string frameCommand;
         // 数据地址域
-        private static string frameAddress;
+        private string frameAddress;
         // 非解析数据
-        private static string frameUnparsed;
+        private string frameUnparsed;
         // 数据内容域
-        private static string frameContent;
+        private string frameContent;
         // 校验码
-        private static string frameCRC;
+        private string frameCRC;
         // 实时数据
         public double realTimeData = 0.0;
         /// <summary>
@@ -339,7 +340,6 @@ namespace PDS800_WirelessTransmitter_Calibration
                     break;
             }
 
-
             //// 传参 (Invoke方法暂停工作线程, BeginInvoke方法不暂停)
             //AvailablMessageHandler(receiveText);
         }
@@ -364,20 +364,11 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 }
                                 if (((receiveText.Length + 1) / 3) == 27)
                                 {
-                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
-                                    {
-                                        ShowReceiveData(receiveText);
-                                        InstumentDataSegmentionText(receiveText);
-                                        ShowParseParameter(receiveText);
-                                        SendConfirmationFrame(receiveText);
-                                    }));
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
                                 }
                                 else if (((receiveText.Length + 1) / 3) != 27 && receiveText.Replace(" ", "") != "")
                                 {
-                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
-                                    {
-                                        ShowReceiveData(receiveText);
-                                    }));
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
                                 }
                             }
                             break;
@@ -390,21 +381,11 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 仪表常规数据
                                 if (((receiveText.Length + 1) / 3) == 42 || ((receiveText.Length + 1) / 3) == 96)
                                 {
-                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
-                                    {
-                                        ShowReceiveData(receiveText);
-                                        InstumentDataSegmentionText(receiveText);
-                                        ShowParseParameter(receiveText);
-                                        SendConfirmationFrame(receiveText);
-                                    }));
-
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
                                 }
                                 else if (((receiveText.Length + 1) / 3) != 42 && ((receiveText.Length + 1) / 3) == 96 && receiveText.Replace(" ", "") != "")
                                 {
-                                    statusReceiveByteTextBlock.Dispatcher.Invoke(new Action(delegate
-                                    {
-                                        ShowReceiveData(receiveText);
-                                    }));
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
                                 }
                             }
                             break;
@@ -418,6 +399,25 @@ namespace PDS800_WirelessTransmitter_Calibration
                     Console.WriteLine(str);
                 }
             }
+        }
+
+        private Action PartialPanelDisplay(string receiveText)
+        {
+            return new Action(delegate
+            {
+                ShowReceiveData(receiveText);
+            });
+        }
+
+        private Action FullPanelDisplay(string receiveText)
+        {
+            return new Action(delegate
+            {
+                ShowReceiveData(receiveText);
+                InstumentDataSegmentionText(receiveText);
+                ShowParseParameter(receiveText);
+                SendConfirmationFrame(receiveText);
+            });
         }
 
         /// <summary>
@@ -510,7 +510,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         }
 
-        public static void PrintValues(IEnumerable myCollection)
+        public void PrintValues(IEnumerable myCollection)
         {
             foreach (object obj in myCollection)
             {
@@ -1616,7 +1616,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         }
 
-        private static string CalCheckCode_7E(string receiveText)
+        private string CalCheckCode_7E(string receiveText)
         {
             int j = 0;
             string txt = receiveText.Trim();
@@ -1637,7 +1637,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         }
 
-        private static string CalCheckCode_FE(string receiveText)
+        private string CalCheckCode_FE(string receiveText)
         {
             string j = "";
             string txt = receiveText.Trim();
@@ -2430,7 +2430,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// </summary>
         /// <param name="str"></param>
         /// <returns>第0位为头字节，第1至length - 2位为可用字节，第length - 1位为尾字节</returns>
-        private static string[] MessageSegmentationExtraction(string str)
+        private string[] MessageSegmentationExtraction(string str)
         {
             string[] sepStr = str.Split(' ');
             string handleStr = "";
@@ -2505,7 +2505,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 outPutStr.SetValue(str.Substring(mantissaStartFrame * 3, str.Length - mantissaStartFrame * 3), outPutStrTag + 1);
 
             }
-            Console.WriteLine();
+            //Console.WriteLine();
             if (outPutStrTag == 0)
             {
                 string[] useOutPutStr = new string[1];
@@ -2529,7 +2529,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// 二进制字符串转换为十六进制字符串并格式化
         /// </summary>
         /// <param name="bytes"></param>
-        private static string BytestoHexStr(byte[] bytes)
+        private string BytestoHexStr(byte[] bytes)
         {
             string HexStr = "";
             for (int i = 0; i < bytes.Length; i++)
@@ -2545,7 +2545,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="HexStr1"></param>
         /// <param name="HexStr2"></param>
         /// <returns></returns>
-        public static string HexStrXor(string HexStr1, string HexStr2)
+        public string HexStrXor(string HexStr1, string HexStr2)
         {
             // 两个十六进制字符串的长度和长度差的绝对值以及异或结果
             int iHexStr1Len = HexStr1.Length;
@@ -2595,7 +2595,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// </summary>
         /// <param name="HexStr"></param>
         /// <returns></returns>
-        public static byte[] HexStrToBytes(string HexStr)
+        public byte[] HexStrToBytes(string HexStr)
         {
             if (HexStr == null)
             {
@@ -2623,7 +2623,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// </summary>
         /// <param name="HexStr"></param>
         /// <returns></returns>
-        private static float HexStrToFloat(string HexStr)
+        private float HexStrToFloat(string HexStr)
         {
             if (HexStr == null)
             {
@@ -2887,7 +2887,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             //{
             //    plotter.Viewport.Visible = new Rect(0, -1, 5, 24);
             //}
-            plotter.Viewport.FitToView();
+            //plotter.Viewport.FitToView();
             plotPointX++;
         }
 

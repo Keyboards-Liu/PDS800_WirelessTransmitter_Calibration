@@ -23,12 +23,16 @@ namespace PDS800_WirelessTransmitter_Calibration
     {
         public MainWindow()
         {
-            try { InitializeComponent(); }
+            try
+            {
+                InitializeComponent();
+            }
             catch (Exception ex)
             {
                 string str = ex.StackTrace;
-                Console.WriteLine(str); }
+                Console.WriteLine(str);
             }
+        }
 
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
