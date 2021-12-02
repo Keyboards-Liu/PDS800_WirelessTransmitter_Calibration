@@ -39,6 +39,7 @@
             <!--半固定面板-->
             <RowDefinition Height="50"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="240"/>
@@ -104,7 +105,7 @@
 
 
         </DockPanel>
-        <Grid Grid.Column="0" Grid.Row="1" Grid.RowSpan="3" Margin="0,0,0,30.333">
+        <Grid Grid.Column="0" Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="120*" MinHeight="120"/>
                 <RowDefinition Height="60*" MinHeight="60"/>
@@ -159,7 +160,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <CheckBox x:Name="autoClearCheckBox" Margin="5,5,10,5" Content="自动清空" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        <CheckBox x:Name="autoClearCheckBox" Margin="5,5,10,5" Content="自动清空" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" IsChecked="True"/>
                         <Button Command="Save" Content="保存文件" Margin="5,5,10,5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                     </StackPanel>
                     <Button x:Name="clearReceiveButton"  Grid.Column="1" Margin="5" Content="清空接收区" Click="ClearReceiveButton_Click"/>
@@ -227,12 +228,12 @@
                         </DockPanel>
 
 
-                        <DockPanel Margin="5,0">
+                        <DockPanel Margin="5,0" Visibility="Hidden">
                             <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="单位（1byte）"/>
                             <TextBox x:Name="calibrationUnitTextBox" Margin="0" Text="04" VerticalAlignment="Center"/>
                         </DockPanel>
                         <DockPanel Margin="5,0">
-                            <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="标定数据"/>
+                            <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="标定数据（float）"/>
                             <TextBox x:Name="calibrationParametersContentTextBox" Margin="0" Text="00" VerticalAlignment="Center"/>
                         </DockPanel>
                     </WrapPanel>
@@ -241,24 +242,24 @@
                     <ScrollViewer>
                         <WrapPanel VerticalAlignment="Center">
                             <DockPanel Margin="5,0">
-                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="仪表型号（8byte）" Width="120"/>
-                                <TextBox x:Name="calibrationInstrumentModelTextBox" Margin="0" Text="00 01 02 03 04 05 06 07" MinWidth="120" VerticalAlignment="Center" PreviewTextInput="CalibrationInstrumentModelTextBox_PreviewTextInput"/>
+                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="仪表型号（8byte）"/>
+                                <TextBox x:Name="calibrationInstrumentModelTextBox" Margin="0" Text="00 01 02 03 04 05 06 07" VerticalAlignment="Center" PreviewTextInput="CalibrationInstrumentModelTextBox_PreviewTextInput"/>
                             </DockPanel>
                             <DockPanel Margin="5,0">
-                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="系列号（16byte）" Width="120"/>
-                                <TextBox x:Name="calibrationSerialNumberTextBox" PreviewTextInput="CalibrationSerialNumberTextBox_PreviewTextInput" Margin="0" Text="00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F" MinWidth="120" VerticalAlignment="Center"/>
+                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="系列号（16byte）"/>
+                                <TextBox x:Name="calibrationSerialNumberTextBox" PreviewTextInput="CalibrationSerialNumberTextBox_PreviewTextInput" Margin="0" Text="00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F" VerticalAlignment="Center"/>
                             </DockPanel>
                             <DockPanel Margin="5,0">
-                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="IP等级（8byte）" Width="120"/>
-                                <TextBox x:Name="calibrationIPRatingTextBox" PreviewTextInput="CalibrationIPRatingTextBox_PreviewTextInput" Margin="0" Text="00 01 02 03 04 05 06 07" MinWidth="120" VerticalAlignment="Center"/>
+                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="IP等级（8byte）"/>
+                                <TextBox x:Name="calibrationIPRatingTextBox" PreviewTextInput="CalibrationIPRatingTextBox_PreviewTextInput" Margin="0" Text="00 01 02 03 04 05 06 07" VerticalAlignment="Center"/>
                             </DockPanel>
                             <DockPanel Margin="5,0">
-                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="防爆等级（12byte）" Width="120"/>
-                                <TextBox x:Name="calibrationExplosionProofLevelTextBox" PreviewTextInput="CalibrationExplosionProofLevelTextBox_PreviewTextInput" Margin="0" Text="00 01 02 03 04 05 06 07 08 09 0A 0B" MinWidth="120" VerticalAlignment="Center"/>
+                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="防爆等级（12byte）"/>
+                                <TextBox x:Name="calibrationExplosionProofLevelTextBox" PreviewTextInput="CalibrationExplosionProofLevelTextBox_PreviewTextInput" Margin="0" Text="00 01 02 03 04 05 06 07 08 09 0A 0B" VerticalAlignment="Center"/>
                             </DockPanel>
                             <DockPanel Margin="5,0">
-                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="说明（10byte）" Width="120"/>
-                                <TextBox x:Name="calibrationInstructionsTextBox" PreviewTextInput="CalibrationInstructionsTextBox_PreviewTextInput" Margin="0" Text="00 01 02 03 04 05 06 07 08 09" MinWidth="120" VerticalAlignment="Center"/>
+                                <Label HorizontalAlignment="Left" VerticalAlignment="Center" Content="说明（10byte）"/>
+                                <TextBox x:Name="calibrationInstructionsTextBox" PreviewTextInput="CalibrationInstructionsTextBox_PreviewTextInput" Margin="0" Text="00 01 02 03 04 05 06 07 08 09" VerticalAlignment="Center"/>
                             </DockPanel>
                         </WrapPanel>
                         <ScrollViewer.ToolTip>
@@ -269,17 +270,17 @@
             </TabControl>
 
         </Grid>
-        <Grid Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Margin="0,0,0,30.333">
+        <Grid Grid.Column="1" Grid.Row="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="90*" MinHeight="90"/>
+                <RowDefinition Height="60*" MinHeight="60"/>
                 <RowDefinition Height="auto" MinHeight="60"/>
-                <RowDefinition Height="150*" MinHeight="150"/>
+                <RowDefinition Height="90*" MinHeight="90"/>
                 <RowDefinition Height="60*" MinHeight="60"/>
             </Grid.RowDefinitions>
             <!--显示面板-->
             <GroupBox Grid.Row="0" Header="显示文本面板" Margin="5" BorderBrush="Gray">
                 <ScrollViewer x:Name="displayScrollViewer" Margin="5">
-                    <TextBox x:Name="displayTextBox" IsReadOnly="True" TextWrapping="Wrap" TextAlignment="Left"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontFamily="宋体" FontSize="15" BorderBrush="{x:Null}" BorderThickness="0"/>
+                    <TextBox x:Name="displayTextBox" IsReadOnly="True" TextWrapping="Wrap" TextAlignment="Left"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontFamily="Times New Roman" FontSize="12" BorderBrush="{x:Null}" BorderThickness="0"/>
                     <ScrollViewer.ToolTip>
                         <ToolTip Placement="Top" Content="显示串口接收到的数据"/>
                     </ScrollViewer.ToolTip>
@@ -390,20 +391,14 @@
             <!--实时数据显示面板-->
             <GroupBox Grid.Row="2" Header="实时数据显示面板" Margin="5" BorderBrush="Gray">
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock x:Name="dataUsageText" Margin="10,10,0,0" FontSize="15"/>
-                    </StackPanel>
-                    <d3:ChartPlotter x:Name="plotter" Margin="10,10,10,10" Grid.Row="1">
+                    <d3:ChartPlotter x:Name="plotter" Margin="5">
                     </d3:ChartPlotter>
                 </Grid>
             </GroupBox>
             <!--发送文本面板-->
             <GroupBox Grid.Row="3" Grid.ColumnSpan="2" Header="发送文本面板" Margin="5" BorderBrush="Gray">
                 <ScrollViewer Margin="5" BorderBrush="Gray">
-                    <TextBox x:Name="sendTextBox" AcceptsReturn="True" TextWrapping="Wrap" TextAlignment="Left"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontFamily="宋体" FontSize="15" PreviewTextInput="SendTextBox_PreviewTextInput" BorderBrush="{x:Null}" BorderThickness="0"/>
+                    <TextBox x:Name="sendTextBox" AcceptsReturn="True" TextWrapping="Wrap" TextAlignment="Left"  HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontFamily="Times New Roman" FontSize="12" PreviewTextInput="SendTextBox_PreviewTextInput" BorderBrush="{x:Null}" BorderThickness="0"/>
                     <ScrollViewer.ToolTip>
                         <ToolTip Placement="Top" Content="将要发送的数据，Ctrl+Enter发送"/>
                     </ScrollViewer.ToolTip>
