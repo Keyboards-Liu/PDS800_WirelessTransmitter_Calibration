@@ -1987,16 +1987,15 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strHandlerContent;
                             if (regularDataUpdateRate.Text != "")
                             {
-                                strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text, 16)).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text), 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             }
                             else if (resSleepTime.Text != "")
                             {
-                                int sleeptime = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16);
-                                strHandlerContent = sleeptime.ToString();
+                                strHandlerContent = frameContent.Substring(36, 5);
                             }
                             else
                             {
-                                strHandlerContent = "0";
+                                strHandlerContent = "00 00";
                             }
                             // 合成数据域
                             string strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
@@ -2020,16 +2019,15 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strHandlerContent;
                             if (regularDataUpdateRate.Text != "")
                             {
-                                strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text, 16)).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text), 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             }
                             else if (resSleepTime.Text != "")
                             {
-                                int sleeptime = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16);
-                                strHandlerContent = sleeptime.ToString();
+                                strHandlerContent = frameContent.Substring(36, 5);
                             }
                             else
                             {
-                                strHandlerContent = "0";
+                                strHandlerContent = "00 00";
                             }
                             // 合成数据域
                             string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
@@ -2564,7 +2562,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             int mantissaStartFrame = 0;
             // 定义输出格式
             int outPutStrTag = 0;
-            string[] outPutStr = new string[50];
+            string[] outPutStr = new string[1000];
             // 寻找可用报文
             for (int i = 0; i < sepStr.Length; i++)
             {
@@ -2575,8 +2573,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                         handleStr = str.Substring(i * 3, str.Length - i * 3);
                         sepHandleStr = handleStr.Split(' ');
                         // 通过长度域判断是否为完整报文,
-                        tmpstr = sepHandleStr[1];
-                        if (sepHandleStr.Length >= 5 && sepHandleStr.Length >= Convert.ToInt32(tmpstr, 16) + 5)
+                        if (sepHandleStr.Length >= 5 && sepHandleStr.Length >= Convert.ToInt32(sepHandleStr[1], 16) + 5)
                         {
                             string[] useFrame = new string[Convert.ToInt32(sepHandleStr[1], 16) + 5];
                             Array.Copy(sepHandleStr, useFrame, Convert.ToInt32(sepHandleStr[1], 16) + 5);
@@ -3001,9 +2998,6 @@ namespace PDS800_WirelessTransmitter_Calibration
 
             Point point = new Point(x, plotPointY);
             dataSource.AppendAsync(Dispatcher, point);
-            string strx = DateTime.Now.ToString("HH:mm:ss");
-            dataUsageText.Text = plotPointY.ToString();
-
             //if (plotPointX >= 5)
             //{
             //    plotter.Viewport.Visible = new Rect(plotPointX - 5, -1, 5, 24);

@@ -4,7 +4,7 @@
              xmlns:local="clr-namespace:PDS800_WirelessTransmitter_Calibration"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-        <Style TargetType="ComboBoxItem">
+        <Style TargetType="MenuItem">
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>

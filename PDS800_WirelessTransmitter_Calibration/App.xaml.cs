@@ -14,10 +14,11 @@ namespace PDS800_WirelessTransmitter_Calibration
     /// </summary>
     public partial class App : Application
     {
-        LierdaCracker cracker = new LierdaCracker();
+        public LierdaCracker Cracker { get; set; } = new LierdaCracker();
+
         protected override void OnStartup(StartupEventArgs e)
         {
-            cracker.Cracker(100);//垃圾回收间隔时间
+            Cracker.Cracker(500);//垃圾回收间隔时间
             base.OnStartup(e);
         }
     }
