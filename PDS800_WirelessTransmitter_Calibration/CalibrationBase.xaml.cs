@@ -67,7 +67,9 @@ namespace PDS800_WirelessTransmitter_Calibration
         // 校验码
         private string frameCRC;
         // 实时数据
-        public double realTimeData = 0.0;
+        private double realTimeData = 0.0;
+        // Lora标志
+        private bool LoRaFlag;
         /// <summary>
         /// 关闭窗口
         /// </summary>
@@ -356,42 +358,63 @@ namespace PDS800_WirelessTransmitter_Calibration
                 {
                     switch (receiveText.Substring(0, 2))
                     {
+                        // Zigbee 四信解析
                         case "FE":
                             {
-                                if (receiveText.Substring(receiveText.Length - 8, 5) == "F0 55")
+                                // 不解析确认帧，只显示
+                                if (receiveText.Length >= 8 && receiveText.Substring(receiveText.Length - 8, 5) == "F0 55")
                                 {
                                     connectFlag = false;
                                     establishConnectionButton.IsEnabled = true;
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
+                                    break;
                                 }
-                                if (((receiveText.Length + 1) / 3) == 27)
+                                // 如果是能解析的帧（常规数据帧或基本参数帧），就全面板显示
+                                if (((receiveText.Length + 1) / 3) == 27 || ((receiveText.Length + 1) / 3) == 81)
                                 {
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
                                 }
-                                else if (((receiveText.Length + 1) / 3) != 27 && receiveText.Replace(" ", "") != "")
+                                // 如果是不能解析的帧，就部分显示
+                                else if (receiveText.Replace(" ", "") != "")
                                 {
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
                                 }
                             }
                             break;
+                        // Zigbee Digi和LoRa解析
                         case "7E":
                             {
-                                if (receiveText.Substring(receiveText.Length - 8, 5) == "F0 55")
+                                // 不解析确认帧，只显示
+                                if (receiveText.Length >= 8 && receiveText.Substring(receiveText.Length - 8, 5) == "F0 55")
                                 {
                                     connectFlag = false;
                                     establishConnectionButton.IsEnabled = true;
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
+                                    break;
                                 }
-                                // 仪表常规数据
-                                if (((receiveText.Length + 1) / 3) == 42 || ((receiveText.Length + 1) / 3) == 96)
+                                // 如果是能解析的LoRa帧（常规数据帧或基本参数帧），就全面板显示
+                                if (((receiveText.Length + 1) / 3) == 24 || ((receiveText.Length + 1) / 3) == 78)
                                 {
+                                    LoRaFlag = true;
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
                                 }
-                                else if (((receiveText.Length + 1) / 3) != 42 && ((receiveText.Length + 1) / 3) == 96 && receiveText.Replace(" ", "") != "")
+                                // 如果是能解析的Digi帧（常规数据帧或基本参数帧），就全面板显示
+                                else if (((receiveText.Length + 1) / 3) == 42 || ((receiveText.Length + 1) / 3) == 96)
+                                {
+                                    LoRaFlag = false;
+                                    statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
+                                }
+                                // 如果是不能解析的帧，就部分显示
+                                else if (receiveText.Replace(" ", "") != "")
                                 {
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
                                 }
+
                             }
                             break;
+
                         default:
+                            statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
                             break;
                     }
                 }
@@ -428,6 +451,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="receiveText"></param>
         private void SendConfirmationFrame(string receiveText)
         {
+            // 如果不需要建立连接，发送常规确认帧
             if (connectFlag == false)
             {
                 try
@@ -441,16 +465,21 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     string str = RegularDataConfirmationFrame();
                                     SerialPortSend(str);
                                 }
+                                else if (((receiveText.Length + 1) / 3) == 81)
+                                {
+                                    string str = BasicInformationConfirmationFrame();
+                                    SerialPortSend(str);
+                                }
                             }
                             break;
                         case "7E":
                             {
-                                if (((receiveText.Length + 1) / 3) == 42)
+                                if (((receiveText.Length + 1) / 3) == 42 || ((receiveText.Length + 1) / 3) == 24)
                                 {
                                     string str = RegularDataConfirmationFrame();
                                     SerialPortSend(str);
                                 }
-                                else if (((receiveText.Length + 1) / 3) == 96)
+                                else if (((receiveText.Length + 1) / 3) == 96 || ((receiveText.Length + 1) / 3) == 78)
                                 {
                                     string str = BasicInformationConfirmationFrame();
                                     SerialPortSend(str);
@@ -468,6 +497,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     Console.WriteLine(str);
                 }
             }
+            // 如果需要建立连接，用建立连接帧替代确认帧
             else
             {
                 try
@@ -486,12 +516,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                         case "7E":
                             {
 
-                                if (((receiveText.Length + 1) / 3) == 42)
+                                if (((receiveText.Length + 1) / 3) == 42 || ((receiveText.Length + 1) / 3) == 24)
                                 {
                                     string str = EstablishBuild_Text();
                                     SerialPortSend(str);
                                 }
-                                else if (((receiveText.Length + 1) / 3) == 96)
+                                else if (((receiveText.Length + 1) / 3) == 96 || ((receiveText.Length + 1) / 3) == 78)
                                 {
                                     string str = BasicInformationConfirmationFrame();
                                     SerialPortSend(str);
@@ -573,20 +603,43 @@ namespace PDS800_WirelessTransmitter_Calibration
                         break;
                     case "7E":
                         {
-                            // 帧头 (1位)
-                            frameHeader = receiveText.Substring(0 * 3, (1 * 3) - 1);
-                            // 长度域 (2位, 最长为FF = 65535)
-                            frameLength = receiveText.Substring((0 + 1) * 3, (2 * 3) - 1);
-                            // 命令域 (1位，指示是否收到数据)
-                            frameCommand = receiveText.Substring((0 + 1 + 2) * 3, (1 * 3) - 1);
-                            // 数据地址域 (8位)
-                            frameAddress = receiveText.Substring((0 + 1 + 2 + 1) * 3, (8 * 3) - 1);
-                            // 非解析帧 (9位)
-                            frameUnparsed = receiveText.Substring((0 + 1 + 2 + 1 + 8) * 3, (9 * 3) - 1);
-                            // 数据内容域 (去掉头21位，尾1位)
-                            frameContent = receiveText.Substring((21 * 3), receiveText.Length - (21 * 3) - 3);
-                            // 校验码 (1位)
-                            frameCRC = receiveText.Substring(receiveText.Length - 2, 2);
+                            // 如果是LoRa
+                            if (LoRaFlag)
+                            {
+                                // 帧头 (1位)
+                                frameHeader = receiveText.Substring(0 * 3, (1 * 3) - 1);
+                                // 长度域 (2位, 最长为FF = 65535)
+                                frameLength = receiveText.Substring((0 + 1) * 3, (2 * 3) - 1);
+                                // 命令域 (0位，指示是否收到数据)
+                                frameCommand = "";
+                                // 数据地址域 (0位)
+                                frameAddress = "";
+                                // 非解析帧 (0位)
+                                frameUnparsed = receiveText.Substring((0 + 1 + 2 + 1 + 8) * 3, (9 * 3) - 1);
+                                // 数据内容域 (去掉头3位，尾1位)
+                                frameContent = receiveText.Substring((3 * 3), receiveText.Length - (3 * 3) - 3);
+                                // 校验码 (1位)
+                                frameCRC = receiveText.Substring(receiveText.Length - 2, 2);
+                            }
+                            // 如果是Digi
+                            else
+                            {
+                                // 帧头 (1位)
+                                frameHeader = receiveText.Substring(0 * 3, (1 * 3) - 1);
+                                // 长度域 (2位, 最长为FF = 65535)
+                                frameLength = receiveText.Substring((0 + 1) * 3, (2 * 3) - 1);
+                                // 命令域 (1位，指示是否收到数据)
+                                frameCommand = receiveText.Substring((0 + 1 + 2) * 3, (1 * 3) - 1);
+                                // 数据地址域 (8位)
+                                frameAddress = receiveText.Substring((0 + 1 + 2 + 1) * 3, (8 * 3) - 1);
+                                // 非解析帧 (9位)
+                                frameUnparsed = receiveText.Substring((0 + 1 + 2 + 1 + 8) * 3, (9 * 3) - 1);
+                                // 数据内容域 (去掉头21位，尾1位)
+                                frameContent = receiveText.Substring((21 * 3), receiveText.Length - (21 * 3) - 3);
+                                // 校验码 (1位)
+                                frameCRC = receiveText.Substring(receiveText.Length - 2, 2);
+                            }
+
                         }
                         break;
                     default:
@@ -993,8 +1046,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 try
                                 {
 
-                                    int frameresData = Convert.ToInt32(frameContent.Substring(54, 5).Replace(" ", ""), 16);
-                                    resData.Text = frameresData + "KPa";
+                                    string frameresData = Convert.ToInt32(frameContent.Substring(54, 5).Replace(" ", ""), 16).ToString();
+                                    resData.Text = frameresData;
                                     resDataDockPanel.Visibility = Visibility.Visible;
                                     try
                                     {
@@ -1042,7 +1095,14 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         //switch (intFrameProtocol)
                                         //{
                                         //    case 0x0001:
-                                        resProtocol.Text = "ZigBee（Digi International）";
+                                        if (LoRaFlag)
+                                        {
+                                            resProtocol.Text = "LoRa（Semtech）";
+                                        }
+                                        else
+                                        {
+                                            resProtocol.Text = "ZigBee（Digi International）";
+                                        }
                                         resProtocolDockPanel.Visibility = Visibility.Visible;
                                         //        break;
                                         //    default:
@@ -1063,10 +1123,19 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     // 网络地址
                                     try
                                     {
-                                        string frameContentAddress = (frameAddress.Substring(6, 2) + frameAddress.Substring(3, 2)).Replace(" ", "");
-                                        int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
-                                        resAddress.Text = intFrameContentAddress.ToString();
-                                        resAddressDockPanel.Visibility = Visibility.Visible;
+                                        if (LoRaFlag)
+                                        {
+                                            resAddress.Text = "透传模式";
+                                            resAddressDockPanel.Visibility = Visibility.Visible;
+                                        }
+                                        else
+                                        {
+                                            string frameContentAddress = (frameAddress.Substring(6, 2) + frameAddress.Substring(3, 2)).Replace(" ", "");
+                                            int intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
+                                            resAddress.Text = intFrameContentAddress.ToString();
+                                            resAddressDockPanel.Visibility = Visibility.Visible;
+                                        }
+
                                     }
                                     catch (Exception ex)
                                     {
@@ -1225,7 +1294,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                         {
                                             case 0x0000:
                                                 resFunctionData.Text = "常规数据（仪表实时数据）";
-                                                if (((receiveText.Length + 1) / 3) == 42)
+                                                if (((receiveText.Length + 1) / 3) == 42 || ((receiveText.Length + 1) / 3) == 24)
                                                 {
                                                     // 无线仪表数据段
                                                     // 通信效率
@@ -1366,12 +1435,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                         string frameContentType = frameContent.Substring(12, 5).Replace(" ", "");
                                                         int intFrameContentType = Convert.ToInt32(frameContentType, 16);
                                                         string type = "";
-                                                        switch (intFrameContentType)
-                                                        {
-                                                            case 0x0002: type = "Pa"; break;
-                                                            case 0x0003: type = "℃"; break;
-                                                            default: type = ""; break;
-                                                        }
+                                                        //switch (intFrameContentType)
+                                                        //{
+                                                        //    case 0x0002: type = "Pa"; break;
+                                                        //    case 0x0003: type = "℃"; break;
+                                                        //    default: type = ""; break;
+                                                        //}
                                                         resData.Text = flFrameData.ToString() + type;
                                                         resDataDockPanel.Visibility = Visibility.Visible;
                                                         AnimatedPlot();
@@ -1390,7 +1459,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                 break;
                                             case 0x0010:
                                                 resFunctionData.Text = "常规数据（仪表基本参数）";
-                                                if (((receiveText.Length + 1) / 3) == 96)
+                                                if (((receiveText.Length + 1) / 3) == 96 || ((receiveText.Length + 1) / 3) == 78)
                                                 {
                                                     // 无线仪表数据段
                                                     // 仪表型号
@@ -2011,34 +2080,68 @@ namespace PDS800_WirelessTransmitter_Calibration
                         break;
                     case "7E":
                         {
-                            // 获取所需解析数据
-                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
-                            // 功能码 / 数据类型
-                            string strFunctionData = "01 00";
-                            // 写操作数据区
-                            string strHandlerContent;
-                            if (regularDataUpdateRate.Text != "")
+                            if (LoRaFlag)
                             {
-                                strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text), 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                            }
-                            else if (resSleepTime.Text != "")
-                            {
-                                strHandlerContent = frameContent.Substring(36, 5);
+                                // 获取所需解析数据
+                                ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                                // 功能码 / 数据类型
+                                string strFunctionData = "01 00";
+                                // 写操作数据区
+                                string strHandlerContent;
+                                if (regularDataUpdateRate.Text != "")
+                                {
+                                    strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text), 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                }
+                                else if (resSleepTime.Text != "")
+                                {
+                                    strHandlerContent = frameContent.Substring(36, 5);
+                                }
+                                else
+                                {
+                                    strHandlerContent = "00 00";
+                                }
+                                // 合成数据域
+                                string strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                                // 计算长度域（包含命令域）
+                                int intLength = (strContent.Length + 1) / 3;
+                                string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                string strInner = strLength + " " + strContent;
+                                // 计算异或校验码
+                                string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                                // 合成返回值
+                                str = strHeader + " " + strInner + " " + strCRC;
                             }
                             else
                             {
-                                strHandlerContent = "00 00";
+                                // 获取所需解析数据
+                                ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                                // 功能码 / 数据类型
+                                string strFunctionData = "01 00";
+                                // 写操作数据区
+                                string strHandlerContent;
+                                if (regularDataUpdateRate.Text != "")
+                                {
+                                    strHandlerContent = Convert.ToString(Convert.ToInt32(regularDataUpdateRate.Text), 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                }
+                                else if (resSleepTime.Text != "")
+                                {
+                                    strHandlerContent = frameContent.Substring(36, 5);
+                                }
+                                else
+                                {
+                                    strHandlerContent = "00 00";
+                                }
+                                // 合成数据域
+                                string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                                // 计算长度域（包含命令域）
+                                int intLength = (strContent.Length + 1) / 3;
+                                string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                string strInner = strLength + " " + strContent;
+                                // 计算异或校验码
+                                string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                                // 合成返回值
+                                str = strHeader + " " + strInner + " " + strCRC;
                             }
-                            // 合成数据域
-                            string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                            // 计算长度域（包含命令域）
-                            int intLength = (strContent.Length + 1) / 3;
-                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                            string strInner = strLength + " " + strContent;
-                            // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
-                            // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
                         }
                         break;
                     default:
@@ -2088,22 +2191,45 @@ namespace PDS800_WirelessTransmitter_Calibration
                         break;
                     case "7E":
                         {
-                            // 获取所需解析数据
-                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
-                            // 写操作数据区
-                            // 功能码 / 数据类型
-                            string strFunctionData = "01 01";
-                            string strHandlerContent = "";
-                            // 合成数据域
-                            string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                            // 计算长度域（包含命令域）
-                            int intLength = (strContent.Length + 1) / 3;
-                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                            string strInner = strLength + " " + strContent;
-                            // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
-                            // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            if (LoRaFlag)
+                            {
+                                // 获取所需解析数据
+                                ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                                // 写操作数据区
+                                // 功能码 / 数据类型
+                                string strFunctionData = "01 01";
+                                string strHandlerContent = "";
+                                // 合成数据域
+                                string strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                                // 计算长度域（包含命令域）
+                                int intLength = (strContent.Length + 1) / 3;
+                                string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                string strInner = strLength + " " + strContent;
+                                // 计算异或校验码
+                                string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                                // 合成返回值
+                                str = strHeader + " " + strInner + " " + strCRC;
+                            }
+                            else
+                            {
+                                // 获取所需解析数据
+                                ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                                // 写操作数据区
+                                // 功能码 / 数据类型
+                                string strFunctionData = "01 01";
+                                string strHandlerContent = "";
+                                // 合成数据域
+                                string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                                // 计算长度域（包含命令域）
+                                int intLength = (strContent.Length + 1) / 3;
+                                string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                string strInner = strLength + " " + strContent;
+                                // 计算异或校验码
+                                string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                                // 合成返回值
+                                str = strHeader + " " + strInner + " " + strCRC;
+                            }
+
                         }
                         break;
                     default:
@@ -2195,22 +2321,44 @@ namespace PDS800_WirelessTransmitter_Calibration
                     break;
                 case "7E":
                     {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
-                        // 写操作数据区
-                        // 功能码 / 数据类型
-                        string strFunctionData = "00 80";
-                        string strHandlerContent = "F0";
-                        // 合成数据域
-                        string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        string strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
+                        if (LoRaFlag)
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            string strFunctionData = "00 80";
+                            string strHandlerContent = "F0";
+                            // 合成数据域
+                            string strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+                        else
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            string strFunctionData = "00 80";
+                            string strHandlerContent = "F0";
+                            // 合成数据域
+                            string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
                     }
                     break;
                 default:
@@ -2289,22 +2437,45 @@ namespace PDS800_WirelessTransmitter_Calibration
                     break;
                 case "7E":
                     {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
-                        // 写操作数据区
-                        // 功能码 / 数据类型
-                        string strFunctionData = "00 80";
-                        string strHandlerContent = "FF";
-                        // 合成数据域
-                        string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        string strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
+                        if (LoRaFlag)
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            string strFunctionData = "00 80";
+                            string strHandlerContent = "FF";
+                            // 合成数据域
+                            string strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+                        else
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            string strFunctionData = "00 80";
+                            string strHandlerContent = "FF";
+                            // 合成数据域
+                            string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+
                     }
                     break;
                 default:
@@ -2377,23 +2548,47 @@ namespace PDS800_WirelessTransmitter_Calibration
                     break;
                 case "7E":
                     {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
-                        // 获取设备描述标定信息
-                        // 功能码 / 数据类型
-                        string strFunctionData = "00 80";
-                        // 写操作数据区
-                        string strHandlerContent = "F1 " + calibrationInstrumentModelTextBox.Text.Trim() + " " + calibrationSerialNumberTextBox.Text.Trim() + " " + calibrationIPRatingTextBox.Text.Trim() + " " + calibrationExplosionProofLevelTextBox.Text.Trim() + " " + calibrationInstructionsTextBox.Text.Trim();
-                        // 合成数据域
-                        string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        string strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = HexCRC(strInner);
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
+                        if (LoRaFlag)
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 获取设备描述标定信息
+                            // 功能码 / 数据类型
+                            string strFunctionData = "00 80";
+                            // 写操作数据区
+                            string strHandlerContent = "F1 " + calibrationInstrumentModelTextBox.Text.Trim() + " " + calibrationSerialNumberTextBox.Text.Trim() + " " + calibrationIPRatingTextBox.Text.Trim() + " " + calibrationExplosionProofLevelTextBox.Text.Trim() + " " + calibrationInstructionsTextBox.Text.Trim();
+                            // 合成数据域
+                            string strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+                        else
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 获取设备描述标定信息
+                            // 功能码 / 数据类型
+                            string strFunctionData = "00 80";
+                            // 写操作数据区
+                            string strHandlerContent = "F1 " + calibrationInstrumentModelTextBox.Text.Trim() + " " + calibrationSerialNumberTextBox.Text.Trim() + " " + calibrationIPRatingTextBox.Text.Trim() + " " + calibrationExplosionProofLevelTextBox.Text.Trim() + " " + calibrationInstructionsTextBox.Text.Trim();
+                            // 合成数据域
+                            string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+
                     }
                     break;
                 default:
@@ -2464,25 +2659,51 @@ namespace PDS800_WirelessTransmitter_Calibration
                     break;
                 case "7E":
                     {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
-                        // 获取设备描述标定信息
-                        // 功能码 / 数据类型
-                        string strFunctionData = "00 80";
-                        // 标定数据
-                        string calibrationParameters = FloatStrToHexStr(calibrationParametersContentTextBox.Text);
-                        // 写操作数据区
-                        string strHandlerContent = "F2 " + calibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " + calibrationUnitTextBox.Text.Trim() + " " + calibrationParameters;
-                        // 合成数据域
-                        string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域
-                        int intLength = (strContent.Length + 1) / 3;
-                        string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        string strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        string strCRC = HexCRC(strInner);
-                        // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
+                        if (LoRaFlag)
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 获取设备描述标定信息
+                            // 功能码 / 数据类型
+                            string strFunctionData = "00 80";
+                            // 标定数据
+                            string calibrationParameters = FloatStrToHexStr(calibrationParametersContentTextBox.Text);
+                            // 写操作数据区
+                            string strHandlerContent = "F2 " + calibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " + calibrationUnitTextBox.Text.Trim() + " " + calibrationParameters;
+                            // 合成数据域
+                            string strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+                        else
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out string strHeader, out string strCommand, out string strAddress, out string strProtocolVendor, out string strHandler, out string strGroup);
+                            // 获取设备描述标定信息
+                            // 功能码 / 数据类型
+                            string strFunctionData = "00 80";
+                            // 标定数据
+                            string calibrationParameters = FloatStrToHexStr(calibrationParametersContentTextBox.Text);
+                            // 写操作数据区
+                            string strHandlerContent = "F2 " + calibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " + calibrationUnitTextBox.Text.Trim() + " " + calibrationParameters;
+                            // 合成数据域
+                            string strContent = strCommand + " " + strAddress + " " + frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " + strProtocolVendor + " " + strHandler + " " + strGroup + " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域
+                            int intLength = (strContent.Length + 1) / 3;
+                            string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            string strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            // 合成返回值
+                            str = strHeader + " " + strInner + " " + strCRC;
+                        }
+
                     }
                     break;
                 default:
@@ -2533,10 +2754,20 @@ namespace PDS800_WirelessTransmitter_Calibration
         {
             // 帧头
             strHeader = "7E";
-            // 发送命令域
-            strCommand = "11 00";
-            // 发送地址
-            strAddress = frameAddress;
+            if (LoRaFlag)
+            {
+                // 发送命令域
+                strCommand = "";
+                // 发送地址
+                strAddress = "";
+            }
+            else
+            {
+                // 发送命令域
+                strCommand = "11 00";
+                // 发送地址
+                strAddress = frameAddress;
+            }
             // 协议和厂商号
             strProtocolVendor = frameContent.Substring(0, 11);
             // 仪表类型：手操器
