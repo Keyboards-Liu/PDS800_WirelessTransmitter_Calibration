@@ -365,12 +365,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 if (receiveText.Length >= 8 && receiveText.Substring(receiveText.Length - 8, 5) == "F0 55")
                                 {
                                     connectFlag = false;
-                                    establishConnectionButton.IsEnabled = true;
+                                    connectionStatusEllipse.Dispatcher.Invoke(ConnectionStatusEllipseColorCovert());
+                                    establishConnectionButton.Dispatcher.Invoke(EstablishConnectionButtonEnabled());
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
-                                    break;
                                 }
                                 // 如果是能解析的帧（常规数据帧或基本参数帧），就全面板显示
-                                if (((receiveText.Length + 1) / 3) == 27 || ((receiveText.Length + 1) / 3) == 81)
+                                else if (((receiveText.Length + 1) / 3) == 27 || ((receiveText.Length + 1) / 3) == 81)
                                 {
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
                                 }
@@ -388,12 +388,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 if (receiveText.Length >= 8 && receiveText.Substring(receiveText.Length - 8, 5) == "F0 55")
                                 {
                                     connectFlag = false;
-                                    establishConnectionButton.IsEnabled = true;
+                                    connectionStatusEllipse.Dispatcher.Invoke(ConnectionStatusEllipseColorCovert());
+                                    establishConnectionButton.Dispatcher.Invoke(EstablishConnectionButtonEnabled());
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
-                                    break;
                                 }
                                 // 如果是能解析的LoRa帧（常规数据帧或基本参数帧），就全面板显示
-                                if (((receiveText.Length + 1) / 3) == 24 || ((receiveText.Length + 1) / 3) == 78)
+                                else if (((receiveText.Length + 1) / 3) == 24 || ((receiveText.Length + 1) / 3) == 78)
                                 {
                                     LoRaFlag = true;
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
@@ -424,6 +424,32 @@ namespace PDS800_WirelessTransmitter_Calibration
                     Console.WriteLine(str);
                 }
             }
+        }
+
+        private Action EstablishConnectionButtonEnabled()
+        {
+            return new Action(delegate
+            {
+                EstablishConnectionButtonEnabled_Action();
+            });
+        }
+
+        private void EstablishConnectionButtonEnabled_Action()
+        {
+            establishConnectionButton.IsEnabled = true;
+        }
+
+        private Action ConnectionStatusEllipseColorCovert()
+        {
+            return new Action(delegate
+            {
+                ConnectionStatusEllipseColorCovert_Action();
+            }); 
+        }
+
+        private void ConnectionStatusEllipseColorCovert_Action()
+        {
+            connectionStatusEllipse.Fill = Brushes.Green;
         }
 
         private Action PartialPanelDisplay(string receiveText)
@@ -1053,7 +1079,11 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     {
                                         realTimeData = Convert.ToDouble(frameresData);
                                     }
-                                    catch { }
+                                    catch (Exception ex)
+                                    {
+                                        string str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                    }
                                     AnimatedPlot();
 
                                 }
@@ -2267,7 +2297,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 指示灯变绿
                     if (true)
                     {
-                        connectionStatusEllipse.Fill = Brushes.Green;
+                        connectionStatusEllipse.Fill = Brushes.Yellow;
                         connectFlag = true;
                     }
                     establishConnectionButton.Content = "关闭连接";
@@ -2383,14 +2413,15 @@ namespace PDS800_WirelessTransmitter_Calibration
                     //// 生成16进制字符串
                     sendTextBox.Text = EstablishDisconnect_Text();
                     //// 标定连接发送（已替换为通过connectFlag自动发送）
-                    //SerialPortSend(sendTextBox.Text);
-                    serialPort.Write(EstablishBuild_Text());
+                    SerialPortSend(sendTextBox.Text);
+                    // serialPort.Write(EstablishBuild_Text());
                     // 指示灯变灰
                     establishConnectionButton.Content = "建立连接";
                     connectFlag = false;
                     connectionStatusEllipse.Fill = Brushes.Gray;
                     // 更新率不锁定
                     regularDataUpdateRate.IsEnabled = true;
+                    establishConnectionButton.IsEnabled = true;
                 }
                 catch (Exception ex)
                 {
@@ -2400,7 +2431,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     statusTextBlock.Text = "断开连接出错！";
                     // 指示灯变灰
                     establishConnectionButton.Content = "关闭连接";
-                    establishConnectionButton.IsEnabled = false;
+                    establishConnectionButton.IsEnabled = true;
                     connectionStatusEllipse.Fill = Brushes.Green;
                 }
             }
