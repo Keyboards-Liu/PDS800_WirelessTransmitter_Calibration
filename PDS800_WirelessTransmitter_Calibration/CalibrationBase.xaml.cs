@@ -364,13 +364,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 不解析确认帧，只显示
                                 if (receiveText.Length >= 8 && receiveText.Substring(receiveText.Length - 8, 5) == "F0 55")
                                 {
-                                    connectFlag = false;
-                                    connectionStatusEllipse.Dispatcher.Invoke(ConnectionStatusEllipseColorCovert());
-                                    establishConnectionButton.Dispatcher.Invoke(EstablishConnectionButtonEnabled());
-                                    statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
+                                    ConfirmationFrameResponse(receiveText);
                                 }
                                 // 如果是能解析的帧（常规数据帧或基本参数帧），就全面板显示
-                                else if (((receiveText.Length + 1) / 3) == 27 || ((receiveText.Length + 1) / 3) == 81)
+                                else if (receiveText.Substring(6, 5) == "44 5F" && ((receiveText.Length + 1) / 3) == 27 || ((receiveText.Length + 1) / 3) == 81)
                                 {
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
                                 }
@@ -387,10 +384,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 // 不解析确认帧，只显示
                                 if (receiveText.Length >= 8 && receiveText.Substring(receiveText.Length - 8, 5) == "F0 55")
                                 {
-                                    connectFlag = false;
-                                    connectionStatusEllipse.Dispatcher.Invoke(ConnectionStatusEllipseColorCovert());
-                                    establishConnectionButton.Dispatcher.Invoke(EstablishConnectionButtonEnabled());
-                                    statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
+                                    ConfirmationFrameResponse(receiveText);
                                 }
                                 // 如果是能解析的LoRa帧（常规数据帧或基本参数帧），就全面板显示
                                 else if (((receiveText.Length + 1) / 3) == 24 || ((receiveText.Length + 1) / 3) == 78)
@@ -399,7 +393,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
                                 }
                                 // 如果是能解析的Digi帧（常规数据帧或基本参数帧），就全面板显示
-                                else if (((receiveText.Length + 1) / 3) == 42 || ((receiveText.Length + 1) / 3) == 96)
+                                else if (receiveText.Substring(9, 2) == "91" && ((receiveText.Length + 1) / 3) == 42 || ((receiveText.Length + 1) / 3) == 96)
                                 {
                                     LoRaFlag = false;
                                     statusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(receiveText));
@@ -426,6 +420,27 @@ namespace PDS800_WirelessTransmitter_Calibration
             }
         }
 
+        private void ConfirmationFrameResponse(string receiveText)
+        {
+            connectFlag = false;
+            connectionStatusEllipse.Dispatcher.Invoke(ConnectionStatusEllipseColorCovert());
+            establishConnectionButton.Dispatcher.Invoke(EstablishConnectionButtonEnabled());
+            statusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(receiveText));
+            statusReceiveByteTextBlock.Dispatcher.Invoke(ConnectSuccessDisplay());
+        }
+        private Action ConnectSuccessDisplay()
+        {
+            return new Action(delegate
+            {
+                ConnectSuccessDisplay_Action();
+            });
+        }
+
+        private void ConnectSuccessDisplay_Action()
+        {
+            statusTextBlock.Text = "建立连接成功！";
+        }
+
         private Action EstablishConnectionButtonEnabled()
         {
             return new Action(delegate
@@ -444,7 +459,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             return new Action(delegate
             {
                 ConnectionStatusEllipseColorCovert_Action();
-            }); 
+            });
         }
 
         private void ConnectionStatusEllipseColorCovert_Action()
@@ -1737,7 +1752,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             {
                 foreach (string hex in hexvalue) j = j + Convert.ToInt32(hex, 16);
                 string hexj = (0xFF - Convert.ToInt32(j.ToString("X").Substring(j.ToString("X").Length - 2, 2), 16)).ToString("X");
-                return hexj;
+                return hexj.ToUpper().PadLeft(2, '0');
             }
             catch (Exception ex)
             {
@@ -1755,7 +1770,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             string[] hexvalue = txt.Remove(0, 3).Remove(txt.Length - 6).Split(' ');
             // 求字符串异或值
             foreach (string hex in hexvalue) j = HexStrXor(j, hex);
-            return j;
+            return j.ToUpper().PadLeft(2, '0');
         }
 
         /// <summary>
@@ -1816,9 +1831,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 return;
             }
             // 去掉十六进制前缀
-            sendTextBox.Text.Replace("0x", "");
-            sendTextBox.Text.Replace("0X", "");
-            string sendData = sendTextBox.Text;
+            string sendData = CleanHexString(sendTextBox.Text);
 
             // 十六进制数据发送
             try
@@ -1884,9 +1897,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 statusTextBlock.Text = "请先打开串口！";
                 return;
             }
-            // 去掉十六进制前缀
-            hexstr.Replace("0x", "");
-            hexstr.Replace("0X", "");
+            hexstr = CleanHexString(hexstr);
             string sendData = hexstr;
 
             // 十六进制数据发送
@@ -1941,6 +1952,19 @@ namespace PDS800_WirelessTransmitter_Calibration
                 autoSendCheckBox.IsChecked = false;// 关闭自动发送
             }
         }
+
+        private static string CleanHexString(string hexstr)
+        {
+            // 去掉十六进制前缀
+            hexstr = hexstr.Replace("0x", "");
+            hexstr = hexstr.Replace("0X", "");
+            // 去掉多余空格
+            hexstr = hexstr.Replace("  ", " ");
+            hexstr = hexstr.Replace("  ", " ");
+            hexstr = hexstr.Replace("  ", " ");
+            return hexstr;
+        }
+
         /// <summary>
         /// 手动单击按钮发送
         /// </summary>
@@ -2103,9 +2127,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
                             string strInner = strLength + " " + strCommand + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
                         break;
                     case "7E":
@@ -2137,9 +2161,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                                 string strInner = strLength + " " + strContent;
                                 // 计算异或校验码
-                                string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                                string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                                 // 合成返回值
-                                str = strHeader + " " + strInner + " " + strCRC;
+                                str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                             }
                             else
                             {
@@ -2168,9 +2192,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                                 string strInner = strLength + " " + strContent;
                                 // 计算异或校验码
-                                string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                                string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                                 // 合成返回值
-                                str = strHeader + " " + strInner + " " + strCRC;
+                                str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                             }
                         }
                         break;
@@ -2214,9 +2238,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
                             string strInner = strLength + " " + strCommand + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
                         break;
                     case "7E":
@@ -2236,9 +2260,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                                 string strInner = strLength + " " + strContent;
                                 // 计算异或校验码
-                                string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                                string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                                 // 合成返回值
-                                str = strHeader + " " + strInner + " " + strCRC;
+                                str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                             }
                             else
                             {
@@ -2255,9 +2279,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                                 string strInner = strLength + " " + strContent;
                                 // 计算异或校验码
-                                string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                                string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                                 // 合成返回值
-                                str = strHeader + " " + strInner + " " + strCRC;
+                                str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                             }
 
                         }
@@ -2304,6 +2328,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     establishConnectionButton.IsEnabled = false;
                     // 更新率锁定
                     regularDataUpdateRate.IsEnabled = false;
+                    statusTextBlock.Text = "正在建立连接……";
                 }
                 catch (Exception ex)
                 {
@@ -2318,7 +2343,13 @@ namespace PDS800_WirelessTransmitter_Calibration
                     connectionStatusEllipse.Fill = Brushes.Gray;
                 }
             }
-            else statusTextBlock.Text = "请先解析仪表参数！";
+            else
+            {
+                statusTextBlock.Text = "请先解析仪表参数！";
+                establishConnectionButton.IsChecked = false;
+            }
+
+
         }
         /// <summary>
         /// 建立连接帧
@@ -2344,9 +2375,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
                         string strInner = strLength + " " + strCommand + " " + strContent;
                         // 计算异或校验码
-                        string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
+                        string strCRC = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
                         // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
+                        str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                     }
                     break;
                 case "7E":
@@ -2366,9 +2397,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             string strInner = strLength + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
                         else
                         {
@@ -2385,9 +2416,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             string strInner = strLength + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
                     }
                     break;
@@ -2422,6 +2453,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 更新率不锁定
                     regularDataUpdateRate.IsEnabled = true;
                     establishConnectionButton.IsEnabled = true;
+                    statusTextBlock.Text = "连接已断开";
                 }
                 catch (Exception ex)
                 {
@@ -2461,9 +2493,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
                         string strInner = strLength + " " + strCommand + " " + strContent;
                         // 计算异或校验码
-                        string strCRC = CalCheckCode_FE("00 " + strInner + " 00");
+                        string strCRC = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
                         // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
+                        str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                     }
                     break;
                 case "7E":
@@ -2483,9 +2515,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             string strInner = strLength + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
                         else
                         {
@@ -2502,9 +2534,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             string strInner = strLength + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
 
                     }
@@ -2531,11 +2563,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 生成16进制字符串
                     sendTextBox.Text = DescribeCalibration_Text();
                     // 标定连接发送
-                    // SerialPortSend();
+                    SerialPortSend(sendTextBox.Text);
                     //if (true)
                     //{
                     //    establishConnectionButton.IsChecked = false;
                     //}
+                    statusTextBlock.Text = "描述标定已发送！";
                 }
                 catch (Exception ex)
                 {
@@ -2572,9 +2605,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
                         string strInner = strLength + " " + strCommand + " " + strContent;
                         // 计算异或校验码
-                        string strCRC = HexCRC(strInner);
+                        string strCRC = HexCRC(CleanHexString(strInner));
                         // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
+                        str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                     }
                     break;
                 case "7E":
@@ -2595,9 +2628,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             string strInner = strLength + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
                         else
                         {
@@ -2615,9 +2648,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             string strInner = strLength + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
 
                     }
@@ -2643,6 +2676,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 发送下行报文建立连接 
                     // 生成16进制字符串
                     sendTextBox.Text = ParameterCalibration_Text();
+                    SerialPortSend(sendTextBox.Text);
+                    statusTextBlock.Text = "参数标定已发送！";
+
                     // 标定连接发送
                     // SerialPortSend();
                 }
@@ -2683,9 +2719,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                         string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
                         string strInner = strLength + " " + strCommand + " " + strContent;
                         // 计算异或校验码
-                        string strCRC = HexCRC(strInner);
+                        string strCRC = HexCRC(CleanHexString(strInner));
                         // 合成返回值
-                        str = strHeader + " " + strInner + " " + strCRC;
+                        str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                     }
                     break;
                 case "7E":
@@ -2708,9 +2744,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             string strInner = strLength + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
                         else
                         {
@@ -2730,9 +2766,9 @@ namespace PDS800_WirelessTransmitter_Calibration
                             string strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
                             string strInner = strLength + " " + strContent;
                             // 计算异或校验码
-                            string strCRC = CalCheckCode_7E("00 " + strInner + " 00");
+                            string strCRC = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
                             // 合成返回值
-                            str = strHeader + " " + strInner + " " + strCRC;
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCRC);
                         }
 
                     }
