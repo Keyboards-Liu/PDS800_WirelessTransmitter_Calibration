@@ -1,7 +1,6 @@
 ﻿<Application x:Class="PDS800_WirelessTransmitter_Calibration.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:PDS800_WirelessTransmitter_Calibration"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <Style TargetType="MenuItem">

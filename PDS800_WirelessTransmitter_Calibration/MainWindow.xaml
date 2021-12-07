@@ -5,15 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:PDS800_WirelessTransmitter_Calibration"
         mc:Ignorable="d"
-        
+
         Title="PDS无线变送器标定软件"
-        Name="softWareMainWindow" 
         MinHeight="600 " MinWidth="800"
         Height="600 " Width="800">
     <Grid>
         <!--<TabControl Name="tabControl" SelectionChanged="TabControl_SelectionChanged" >
             <TabItem Header="串口通信" MinHeight="10" MinWidth="40">-->
-        <local:CalibrationBase x:Name="calibrationBase"></local:CalibrationBase>
+        <local:CalibrationBase x:Name="CalibrationBase" />
         <!--</TabItem>
         </TabControl>-->
 
