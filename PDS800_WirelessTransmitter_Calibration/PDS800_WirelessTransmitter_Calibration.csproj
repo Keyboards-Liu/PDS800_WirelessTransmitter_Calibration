@@ -97,6 +97,9 @@
     <Compile Include="CalibrationBase.xaml.cs">
       <DependentUpon>CalibrationBase.xaml</DependentUpon>
     </Compile>
+    <Compile Include="SqlSetting.xaml.cs">
+      <DependentUpon>SqlSetting.xaml</DependentUpon>
+    </Compile>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -110,6 +113,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="CalibrationBase.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SqlSetting.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
