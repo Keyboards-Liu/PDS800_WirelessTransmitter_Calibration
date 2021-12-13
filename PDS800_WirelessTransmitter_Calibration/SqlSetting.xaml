@@ -1,0 +1,35 @@
+﻿<Window x:Class="PDS800_WirelessTransmitter_Calibration.SqlSetting"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:PDS800_WirelessTransmitter_Calibration"
+        mc:Ignorable="d"
+        Title="数据库配置" Height="200" Width="300">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <TextBlock Margin="5" Grid.Row="0" Text="服务器名称"/>
+        <TextBlock Margin="5" Grid.Row="1" Text="身份验证类型"/>
+        <TextBlock Margin="5" Grid.Row="2"  Text="数据库名称"/>
+        <TextBlock Margin="5" Grid.Row="3" Text="工作表名称"/>
+
+        <TextBox x:Name="SqlServer" Margin="5" Grid.Row="0" Grid.Column="1" Text="NB-LIUBIBO\\NB_LIUBIBO"/>
+        <TextBox x:Name="SqlIntegratedSecurity" Margin="5" Grid.Row="1" Grid.Column="1" Text="SSPI"/>
+        <TextBox x:Name="SqlDatabase" Margin="5" Grid.Row="2" Grid.Column="1" Text="CalibrationDataBase"/>
+        <TextBox x:Name="WorkSheet" Margin="5" Grid.Row="3" Grid.Column="1" Text="testinfo"/>
+        
+        <Button Margin="5" Grid.Row="4" Grid.Column="1" Content="确定" Click="Button_Click"/>
+
+    </Grid>
+</Window>
