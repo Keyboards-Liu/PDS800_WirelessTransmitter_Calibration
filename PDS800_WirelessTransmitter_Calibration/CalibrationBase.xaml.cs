@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data.SqlClient;
 using System.Globalization;
 using System.IO.Ports;
 using System.Linq;
@@ -21,34 +22,34 @@ namespace PDS800_WirelessTransmitter_Calibration
         #region 基本定义
 
         // 串行端口
-        private readonly SerialPort serialPort = new SerialPort();
+        public SerialPort NewSerialPort { get; } = new SerialPort();
 
         // 自动发送定时器
-        private readonly DispatcherTimer autoSendTimer = new DispatcherTimer();
+        public DispatcherTimer AutoSendTimer { get; } = new DispatcherTimer();
 
         // 自动检测定时器
-        private readonly DispatcherTimer autoDetectionTimer = new DispatcherTimer();
+        public DispatcherTimer AutoDetectionTimer { get; } = new DispatcherTimer();
 
         // 自动获取当前时间定时器
-        private readonly DispatcherTimer getCurrentTimer = new DispatcherTimer();
+        public DispatcherTimer GetCurrentTimer { get; } = new DispatcherTimer();
 
         // 字符编码设定
-        private readonly Encoding setEncoding = Encoding.Default;
+        public Encoding SetEncoding { get; } = Encoding.Default;
 
         // 变量定义
         // 日期
-        private string dateStr = "";
+        public string DateStr { get; private set; }
 
         // 时刻
-        private string timeStr = "";
+        public string TimeStr { get; private set; }
 
         //// 发送和接收队列
         //private Queue receiveData = new Queue();
         //private Queue sendData = new Queue();
         // 发送和接收字节数
-        private uint receiveBytesCount;
+        public uint ReceiveBytesCount { get; private set; }
 
-        private uint sendBytesCount;
+        public uint SendBytesCount { get; private set; }
 
         // 发送和接收次数
         //private uint receiveCount;
@@ -56,7 +57,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         //private uint sendCount;
 
         // 帧头
-        private string frameHeader;
+        public string FrameHeader { get; private set; }
 
         // 长度域
         public string FrameLength { get; private set; }
@@ -65,22 +66,22 @@ namespace PDS800_WirelessTransmitter_Calibration
         public string FrameCommand { get; private set; }
 
         // 数据地址域
-        private string frameAddress;
+        public string FrameAddress { get; private set; }
 
         // 非解析数据
-        private string frameUnparsed;
+        public string FrameUnparsed { get; private set; }
 
         // 数据内容域
-        private string frameContent;
+        public string FrameContent { get; private set; }
 
         // 校验码
-        private string frameCyclicRedundancyCheck;
+        public string FrameCyclicRedundancyCheck { get; private set; }
 
         // 实时数据
-        private double realTimeData;
+        public double RealTimeData { get; private set; }
 
         // Lora标志
-        private bool isLoRaFlag;
+        public bool IsLoRaFlag { get; private set; }
 
         #endregion
 
@@ -96,17 +97,17 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 检测和添加串口
             AddPortName();
             // 开启串口检测定时器，并设置自动检测1秒1次
-            autoDetectionTimer.Tick += AutoDetectionTimer_Tick;
-            autoDetectionTimer.Interval = new TimeSpan(0, 0, 0, 1, 0);
-            autoDetectionTimer.Start();
+            AutoDetectionTimer.Tick += AutoDetectionTimer_Tick;
+            AutoDetectionTimer.Interval = new TimeSpan(0, 0, 0, 1, 0);
+            AutoDetectionTimer.Start();
             // 开启当前时间定时器，并设置自动检测100毫秒1次
-            getCurrentTimer.Tick += GetCurrentTime;
-            getCurrentTimer.Interval = new TimeSpan(0, 0, 0, 0, 100);
-            getCurrentTimer.Start();
+            GetCurrentTimer.Tick += GetCurrentTime;
+            GetCurrentTimer.Interval = new TimeSpan(0, 0, 0, 0, 100);
+            GetCurrentTimer.Start();
             // 设置自动发送定时器，并设置自动检测100毫秒1次
-            autoSendTimer.Tick += AutoSendTimer_Tick;
+            AutoSendTimer.Tick += AutoSendTimer_Tick;
             // 设置定时时间，开启定时器
-            autoSendTimer.Interval = new TimeSpan(0, 0, 0, 0, Convert.ToInt32(AutoSendCycleTextBox.Text));
+            AutoSendTimer.Interval = new TimeSpan(0, 0, 0, 0, Convert.ToInt32(AutoSendCycleTextBox.Text));
             // 设置状态栏提示
             StatusTextBlock.Text = "准备就绪";
         }
@@ -118,9 +119,9 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="e"></param>
         public void GetCurrentTime(object sender, EventArgs e)
         {
-            dateStr = DateTime.Now.ToString("yyyy-MM-dd");
-            timeStr = DateTime.Now.ToString("HH:mm:ss");
-            OperationTime.Text = dateStr + " " + timeStr;
+            DateStr = DateTime.Now.ToString("yyyy-MM-dd");
+            TimeStr = DateTime.Now.ToString("HH:mm:ss");
+            OperationTime.Text = DateStr + " " + TimeStr;
         }
 
         /// <summary>
@@ -158,12 +159,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 在有效串口号中遍历当前打开的串口号
                     foreach (var name in serialPortName)
                         // 如果找到串口，说明串口仍然有效，跳出循环
-                        if (serialPort.PortName == name)
+                        if (NewSerialPort.PortName == name)
                             return;
 
                     // 如果找不到, 说明串口失效了，关闭串口并移除串口名
                     TurnOnButton.IsChecked = false;
-                    PortNameComboBox.Items.Remove(serialPort.PortName);
+                    PortNameComboBox.Items.Remove(NewSerialPort.PortName);
                     PortNameComboBox.SelectedIndex = 0;
                     // 输出提示信息
                     StatusTextBlock.Text = "串口失效，已自动断开";
@@ -221,28 +222,28 @@ namespace PDS800_WirelessTransmitter_Calibration
             try
             {
                 // 获取面板中的配置, 并设置到串口属性中
-                serialPort.PortName = PortNameComboBox.Text;
-                serialPort.BaudRate = Convert.ToInt32(BaudRateComboBox.Text);
-                serialPort.Parity = (Parity) Enum.Parse(typeof(Parity), ParityComboBox.Text);
-                serialPort.DataBits = Convert.ToInt16(DataBitsComboBox.Text);
-                serialPort.StopBits = (StopBits) Enum.Parse(typeof(StopBits), StopBitsComboBox.Text);
-                serialPort.Encoding = setEncoding;
+                NewSerialPort.PortName = PortNameComboBox.Text;
+                NewSerialPort.BaudRate = Convert.ToInt32(BaudRateComboBox.Text);
+                NewSerialPort.Parity = (Parity)Enum.Parse(typeof(Parity), ParityComboBox.Text);
+                NewSerialPort.DataBits = Convert.ToInt16(DataBitsComboBox.Text);
+                NewSerialPort.StopBits = (StopBits)Enum.Parse(typeof(StopBits), StopBitsComboBox.Text);
+                NewSerialPort.Encoding = SetEncoding;
                 // 添加串口事件处理, 设置委托
-                serialPort.DataReceived += ReceiveData;
+                NewSerialPort.DataReceived += ReceiveData;
                 // 关闭串口配置面板, 开启串口, 变更按钮文本, 打开绿灯, 显示提示文字
                 SerialSettingControlState(false);
-                serialPort.Open();
+                NewSerialPort.Open();
                 StatusTextBlock.Text = "串口已开启";
                 SerialPortStatusEllipse.Fill = Brushes.Green;
                 TurnOnButton.Content = "关闭串口";
                 // 设置超时
-                serialPort.ReadTimeout = 500;
-                serialPort.WriteTimeout = 500;
+                NewSerialPort.ReadTimeout = 500;
+                NewSerialPort.WriteTimeout = 500;
                 // 清空缓冲区
-                serialPort.DiscardInBuffer();
-                serialPort.DiscardOutBuffer();
+                NewSerialPort.DiscardInBuffer();
+                NewSerialPort.DiscardOutBuffer();
                 // 使能作图区
-                dataSource = new ObservableDataSource<Point>();
+                DataSource = new ObservableDataSource<Point>();
                 Plot_Loaded();
             }
             catch (Exception ex)
@@ -251,8 +252,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                 Console.WriteLine(str);
                 // 异常时显示提示文字
                 StatusTextBlock.Text = "开启串口出错！";
-                serialPort.Close();
-                autoSendTimer.Stop();
+                NewSerialPort.Close();
+                AutoSendTimer.Stop();
                 TurnOnButton.IsChecked = false;
                 SerialSettingControlState(true);
             }
@@ -268,15 +269,15 @@ namespace PDS800_WirelessTransmitter_Calibration
             try
             {
                 // 关闭端口, 关闭自动发送定时器, 使能串口配置面板, 变更按钮文本, 关闭绿灯, 显示提示文字 
-                serialPort.Close();
-                autoSendTimer.Stop();
+                NewSerialPort.Close();
+                AutoSendTimer.Stop();
                 SerialSettingControlState(true);
                 StatusTextBlock.Text = "串口已关闭";
                 SerialPortStatusEllipse.Fill = Brushes.Gray;
                 TurnOnButton.Content = "打开串口";
                 // 关闭作图
                 Plotter.Children.RemoveAll(typeof(LineGraph));
-                plotPointX = 1;
+                PlotPointX = 1;
                 // 关闭连接
             }
             catch (Exception ex)
@@ -293,8 +294,8 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         #region 串口数据接收处理/窗口显示清空功能
 
-        private string brokenFrameEnd = "";
-        private string receiveText = "";
+        public string BrokenFrameEnd { get; private set; } = "";
+        public string ReceiveText { get; private set; } = "";
 
         /// <summary>
         ///     接收串口数据, 转换为16进制字符串, 传递到显示功能
@@ -308,28 +309,28 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 读取缓冲区内所有字节
             try
             {
-                var receiveBuffer = new byte[serialPort.BytesToRead];
-                serialPort.Read(receiveBuffer, 0, receiveBuffer.Length);
+                var receiveBuffer = new byte[NewSerialPort.BytesToRead];
+                NewSerialPort.Read(receiveBuffer, 0, receiveBuffer.Length);
                 // 字符串转换为十六进制字符串
-                receiveText = BytesToHexStr(receiveBuffer);
+                ReceiveText = BytesToHexStr(receiveBuffer);
             }
             catch (Exception ex)
             {
                 var str = ex.StackTrace;
                 Console.WriteLine(str);
-                receiveText = "";
+                ReceiveText = "";
             }
 
             // 加入上一次断帧尾数
-            receiveText = (brokenFrameEnd + " " + receiveText).Trim(' ');
+            ReceiveText = (BrokenFrameEnd + " " + ReceiveText).Trim(' ');
             // 对字符串进行断帧
-            var segmentationStr = MessageSegmentationExtraction(receiveText);
+            var segmentationStr = MessageSegmentationExtraction(ReceiveText);
             // 断帧情况判断
             switch (segmentationStr.Length)
             {
                 // 如果只有一帧，要不是空帧，要不是废帧
                 case 1:
-                    brokenFrameEnd = segmentationStr[0];
+                    BrokenFrameEnd = segmentationStr[0];
                     break;
                 // 如果有两帧，只有一个头帧和一个可用帧
                 case 2:
@@ -341,7 +342,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     Array.Copy(segmentationStr, 1, useStr, 0, segmentationStr.Length - 2);
                     foreach (var item in useStr) AvailableMessageHandler(item);
 
-                    brokenFrameEnd = segmentationStr[segmentationStr.Length - 1];
+                    BrokenFrameEnd = segmentationStr[segmentationStr.Length - 1];
                     break;
             }
 
@@ -363,46 +364,46 @@ namespace PDS800_WirelessTransmitter_Calibration
                 {
                     // Zigbee 四信解析
                     case "FE":
-                    {
-                        // 不解析确认帧，只显示
-                        if (txt.Length >= 8 && txt.Substring(txt.Length - 8, 5) == "F0 55")
-                            ConfirmationFrameResponse(txt);
-                        // 如果是能解析的帧（常规数据帧或基本参数帧），就全面板显示
-                        else if (txt.Substring(6, 5) == "44 5F" && (txt.Length + 1) / 3 == 27 ||
-                                 (txt.Length + 1) / 3 == 81)
-                            StatusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(txt));
-                        // 如果是不能解析的帧，就部分显示
-                        else if (txt.Replace(" ", "") != "")
-                            StatusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(txt));
-                    }
+                        {
+                            // 不解析确认帧，只显示
+                            if (txt.Length >= 8 && txt.Substring(txt.Length - 8, 5) == "F0 55")
+                                ConfirmationFrameResponse(txt);
+                            // 如果是能解析的帧（常规数据帧或基本参数帧），就全面板显示
+                            else if (txt.Substring(6, 5) == "44 5F" && (txt.Length + 1) / 3 == 27 ||
+                                     (txt.Length + 1) / 3 == 81)
+                                StatusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(txt));
+                            // 如果是不能解析的帧，就部分显示
+                            else if (txt.Replace(" ", "") != "")
+                                StatusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(txt));
+                        }
                         break;
                     // Zigbee Digi和LoRa解析
                     case "7E":
-                    {
-                        // 不解析确认帧，只显示
-                        if (txt.Length >= 8 && txt.Substring(txt.Length - 8, 5) == "F0 55")
                         {
-                            ConfirmationFrameResponse(txt);
+                            // 不解析确认帧，只显示
+                            if (txt.Length >= 8 && txt.Substring(txt.Length - 8, 5) == "F0 55")
+                            {
+                                ConfirmationFrameResponse(txt);
+                            }
+                            // 如果是能解析的LoRa帧（常规数据帧或基本参数帧），就全面板显示
+                            else if ((txt.Length + 1) / 3 == 24 || (txt.Length + 1) / 3 == 78)
+                            {
+                                IsLoRaFlag = true;
+                                StatusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(txt));
+                            }
+                            // 如果是能解析的Digi帧（常规数据帧或基本参数帧），就全面板显示
+                            else if (txt.Substring(9, 2) == "91" && (txt.Length + 1) / 3 == 42 ||
+                                     (txt.Length + 1) / 3 == 96)
+                            {
+                                IsLoRaFlag = false;
+                                StatusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(txt));
+                            }
+                            // 如果是不能解析的帧，就部分显示
+                            else if (txt.Replace(" ", "") != "")
+                            {
+                                StatusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(txt));
+                            }
                         }
-                        // 如果是能解析的LoRa帧（常规数据帧或基本参数帧），就全面板显示
-                        else if ((txt.Length + 1) / 3 == 24 || (txt.Length + 1) / 3 == 78)
-                        {
-                            isLoRaFlag = true;
-                            StatusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(txt));
-                        }
-                        // 如果是能解析的Digi帧（常规数据帧或基本参数帧），就全面板显示
-                        else if (txt.Substring(9, 2) == "91" && (txt.Length + 1) / 3 == 42 ||
-                                 (txt.Length + 1) / 3 == 96)
-                        {
-                            isLoRaFlag = false;
-                            StatusReceiveByteTextBlock.Dispatcher.Invoke(FullPanelDisplay(txt));
-                        }
-                        // 如果是不能解析的帧，就部分显示
-                        else if (txt.Replace(" ", "") != "")
-                        {
-                            StatusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(txt));
-                        }
-                    }
                         break;
 
                     default:
@@ -419,7 +420,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         private void ConfirmationFrameResponse(string txt)
         {
-            connectFlag = false;
+            ConnectFlag = false;
             ConnectionStatusEllipse.Dispatcher.Invoke(ConnectionStatusEllipseColorCovert());
             EstablishConnectionButton.Dispatcher.Invoke(EstablishConnectionButtonEnabled());
             StatusReceiveByteTextBlock.Dispatcher.Invoke(PartialPanelDisplay(txt));
@@ -479,45 +480,45 @@ namespace PDS800_WirelessTransmitter_Calibration
         private void SendConfirmationFrame(string txt)
         {
             // 如果不需要建立连接，发送常规确认帧
-            if (connectFlag == false)
+            if (ConnectFlag == false)
                 try
                 {
                     switch (txt.Substring(0, 2))
                     {
                         case "FE":
-                        {
-                            if ((txt.Length + 1) / 3 == 27)
                             {
-                                var str = RegularDataConfirmationFrame();
-                                SerialPortSend(str);
-                            }
-                            else if ((txt.Length + 1) / 3 == 81)
-                            {
-                                var str = BasicInformationConfirmationFrame();
-                                SerialPortSend(str);
-                            }
-                        }
-                            break;
-                        case "7E":
-                        {
-                            switch ((txt.Length + 1) / 3)
-                            {
-                                case 42:
-                                case 24:
+                                if ((txt.Length + 1) / 3 == 27)
                                 {
                                     var str = RegularDataConfirmationFrame();
                                     SerialPortSend(str);
-                                    break;
                                 }
-                                case 96:
-                                case 78:
+                                else if ((txt.Length + 1) / 3 == 81)
                                 {
                                     var str = BasicInformationConfirmationFrame();
                                     SerialPortSend(str);
-                                    break;
                                 }
                             }
-                        }
+                            break;
+                        case "7E":
+                            {
+                                switch ((txt.Length + 1) / 3)
+                                {
+                                    case 42:
+                                    case 24:
+                                        {
+                                            var str = RegularDataConfirmationFrame();
+                                            SerialPortSend(str);
+                                            break;
+                                        }
+                                    case 96:
+                                    case 78:
+                                        {
+                                            var str = BasicInformationConfirmationFrame();
+                                            SerialPortSend(str);
+                                            break;
+                                        }
+                                }
+                            }
                             break;
                     }
                 }
@@ -530,32 +531,8 @@ namespace PDS800_WirelessTransmitter_Calibration
             else
                 try
                 {
-                    switch (txt.Substring(0, 2))
-                    {
-                        case "FE":
-                        {
-                            if ((txt.Length + 1) / 3 == 27)
-                            {
-                                var str = EstablishBuild_Text();
-                                SerialPortSend(str);
-                            }
-                        }
-                            break;
-                        case "7E":
-                        {
-                            if ((txt.Length + 1) / 3 == 42 || (txt.Length + 1) / 3 == 24)
-                            {
-                                var str = EstablishBuild_Text();
-                                SerialPortSend(str);
-                            }
-                            else if ((txt.Length + 1) / 3 == 96 || (txt.Length + 1) / 3 == 78)
-                            {
-                                var str = BasicInformationConfirmationFrame();
-                                SerialPortSend(str);
-                            }
-                        }
-                            break;
-                    }
+                    var str = EstablishBuild_Text();
+                    SerialPortSend(str);
                 }
                 catch (Exception ex)
                 {
@@ -571,8 +548,8 @@ namespace PDS800_WirelessTransmitter_Calibration
         private void ShowReceiveData(string txt)
         {
             // 更新接收字节数           
-            receiveBytesCount += (uint) ((txt.Length + 1) / 3);
-            StatusReceiveByteTextBlock.Text = receiveBytesCount.ToString();
+            ReceiveBytesCount += (uint)((txt.Length + 1) / 3);
+            StatusReceiveByteTextBlock.Text = ReceiveBytesCount.ToString();
             // 在接收窗口中显示字符串
             if (txt.Replace(" ", "").Length >= 0)
             {
@@ -596,61 +573,61 @@ namespace PDS800_WirelessTransmitter_Calibration
                 switch (txt.Substring(0, 2))
                 {
                     case "FE":
-                    {
-                        // 帧头 (1位)
-                        frameHeader = txt.Substring(0 * 3, 1 * 3 - 1);
-                        // 长度域 (1位, 最长为FF = 255)
-                        FrameLength = txt.Substring((0 + 1) * 3, 1 * 3 - 1);
-                        // 命令域 (2位)
-                        FrameCommand = txt.Substring((0 + 1 + 1) * 3, 2 * 3 - 1);
-                        // 数据域 (长度域指示长度)
-                        // 数据地址域 (2位)
-                        frameAddress = txt.Substring((0 + 1 + 1 + 2) * 3, 2 * 3 - 1);
-                        // 数据内容域 (去掉头6位，尾1位)
-                        frameContent = txt.Substring(6 * 3, txt.Length - 6 * 3 - 3);
-                        // 校验码 (1位)
-                        frameCyclicRedundancyCheck = txt.Substring(txt.Length - 2, 2);
-                    }
+                        {
+                            // 帧头 (1位)
+                            FrameHeader = txt.Substring(0 * 3, 1 * 3 - 1);
+                            // 长度域 (1位, 最长为FF = 255)
+                            FrameLength = txt.Substring((0 + 1) * 3, 1 * 3 - 1);
+                            // 命令域 (2位)
+                            FrameCommand = txt.Substring((0 + 1 + 1) * 3, 2 * 3 - 1);
+                            // 数据域 (长度域指示长度)
+                            // 数据地址域 (2位)
+                            FrameAddress = txt.Substring((0 + 1 + 1 + 2) * 3, 2 * 3 - 1);
+                            // 数据内容域 (去掉头6位，尾1位)
+                            FrameContent = txt.Substring(6 * 3, txt.Length - 6 * 3 - 3);
+                            // 校验码 (1位)
+                            FrameCyclicRedundancyCheck = txt.Substring(txt.Length - 2, 2);
+                        }
                         break;
                     case "7E":
-                    {
-                        // 如果是LoRa
-                        if (isLoRaFlag)
                         {
-                            // 帧头 (1位)
-                            frameHeader = txt.Substring(0 * 3, 1 * 3 - 1);
-                            // 长度域 (2位, 最长为FF = 65535)
-                            FrameLength = txt.Substring((0 + 1) * 3, 2 * 3 - 1);
-                            // 命令域 (0位，指示是否收到数据)
-                            FrameCommand = "";
-                            // 数据地址域 (0位)
-                            frameAddress = "";
-                            // 非解析帧 (0位)
-                            frameUnparsed = txt.Substring((0 + 1 + 2 + 1 + 8) * 3, 9 * 3 - 1);
-                            // 数据内容域 (去掉头3位，尾1位)
-                            frameContent = txt.Substring(3 * 3, txt.Length - 3 * 3 - 3);
-                            // 校验码 (1位)
-                            frameCyclicRedundancyCheck = txt.Substring(txt.Length - 2, 2);
+                            // 如果是LoRa
+                            if (IsLoRaFlag)
+                            {
+                                // 帧头 (1位)
+                                FrameHeader = txt.Substring(0 * 3, 1 * 3 - 1);
+                                // 长度域 (2位, 最长为FF = 65535)
+                                FrameLength = txt.Substring((0 + 1) * 3, 2 * 3 - 1);
+                                // 命令域 (0位，指示是否收到数据)
+                                FrameCommand = "";
+                                // 数据地址域 (0位)
+                                FrameAddress = "";
+                                // 非解析帧 (0位)
+                                FrameUnparsed = txt.Substring((0 + 1 + 2 + 1 + 8) * 3, 9 * 3 - 1);
+                                // 数据内容域 (去掉头3位，尾1位)
+                                FrameContent = txt.Substring(3 * 3, txt.Length - 3 * 3 - 3);
+                                // 校验码 (1位)
+                                FrameCyclicRedundancyCheck = txt.Substring(txt.Length - 2, 2);
+                            }
+                            // 如果是Digi
+                            else
+                            {
+                                // 帧头 (1位)
+                                FrameHeader = txt.Substring(0 * 3, 1 * 3 - 1);
+                                // 长度域 (2位, 最长为FF = 65535)
+                                FrameLength = txt.Substring((0 + 1) * 3, 2 * 3 - 1);
+                                // 命令域 (1位，指示是否收到数据)
+                                FrameCommand = txt.Substring((0 + 1 + 2) * 3, 1 * 3 - 1);
+                                // 数据地址域 (8位)
+                                FrameAddress = txt.Substring((0 + 1 + 2 + 1) * 3, 8 * 3 - 1);
+                                // 非解析帧 (9位)
+                                FrameUnparsed = txt.Substring((0 + 1 + 2 + 1 + 8) * 3, 9 * 3 - 1);
+                                // 数据内容域 (去掉头21位，尾1位)
+                                FrameContent = txt.Substring(21 * 3, txt.Length - 21 * 3 - 3);
+                                // 校验码 (1位)
+                                FrameCyclicRedundancyCheck = txt.Substring(txt.Length - 2, 2);
+                            }
                         }
-                        // 如果是Digi
-                        else
-                        {
-                            // 帧头 (1位)
-                            frameHeader = txt.Substring(0 * 3, 1 * 3 - 1);
-                            // 长度域 (2位, 最长为FF = 65535)
-                            FrameLength = txt.Substring((0 + 1) * 3, 2 * 3 - 1);
-                            // 命令域 (1位，指示是否收到数据)
-                            FrameCommand = txt.Substring((0 + 1 + 2) * 3, 1 * 3 - 1);
-                            // 数据地址域 (8位)
-                            frameAddress = txt.Substring((0 + 1 + 2 + 1) * 3, 8 * 3 - 1);
-                            // 非解析帧 (9位)
-                            frameUnparsed = txt.Substring((0 + 1 + 2 + 1 + 8) * 3, 9 * 3 - 1);
-                            // 数据内容域 (去掉头21位，尾1位)
-                            frameContent = txt.Substring(21 * 3, txt.Length - 21 * 3 - 3);
-                            // 校验码 (1位)
-                            frameCyclicRedundancyCheck = txt.Substring(txt.Length - 2, 2);
-                        }
-                    }
                         break;
                 }
             }
@@ -677,1191 +654,1369 @@ namespace PDS800_WirelessTransmitter_Calibration
                 switch (txt.Substring(0, 2))
                 {
                     case "FE":
-                    {
-                        //字符串校验
-                        var j = CalCheckCode_FE(txt);
-                        if (j == frameCyclicRedundancyCheck)
                         {
-                            ResCyclicRedundancyCheck.Text = "通过";
-                            // 校验成功写入其他解析参数
-                            // 无线仪表数据域帧头
+                            //字符串校验
+                            var j = CalCheckCode_FE(txt);
+                            if (j == FrameCyclicRedundancyCheck)
                             {
-                                // 通讯协议
-                                try
+                                ResCyclicRedundancyCheck.Text = "通过";
+                                // 校验成功写入其他解析参数
+                                // 无线仪表数据域帧头
                                 {
-                                    // 1 0x0001 ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）
-                                    //string frameProtocol = frameContent.Substring(0, 5).Replace(" ", "");
-                                    //int intFrameProtocol = Convert.ToInt32(frameProtocol, 16);
-                                    //switch (intFrameProtocol)
-                                    //{
-                                    //    case 0x0001:
-                                    ResProtocol.Text = "ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）";
-                                    ResProtocolDockPanel.Visibility = Visibility.Visible;
-                                    //        break;
-                                    //    default:
-                                    //        resProtocol.Text = "未知";
-                                    //        resProtocol.Foreground = new SolidColorBrush(Colors.Red);
-                                    //        break;
-                                    //}
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "通信协议解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 网络地址
-                                try
-                                {
-                                    var frameContentAddress =
-                                        (frameAddress.Substring(3, 2) + frameAddress.Substring(0, 2)).Replace(" ", "");
-                                    var intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
-                                    ResAddress.Text = intFrameContentAddress.ToString();
-                                    ResAddress.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "网络地址解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 厂商号
-                                try
-                                {
-                                    var frameContentVendor = frameContent.Substring(6, 5).Replace(" ", "");
-                                    var intFrameContentVendor = Convert.ToInt32(frameContentVendor, 16);
-                                    // 1 0x0001 厂商1
-                                    // 2 0x0002 厂商2
-                                    // 3 0x0003 厂商3
-                                    // 4 ......
-                                    // N 0x8001~0xFFFF 预留
-                                    if (intFrameContentVendor > 0x0000 && intFrameContentVendor < 0x8001)
+                                    // 通讯协议
+                                    try
                                     {
-                                        ResVendor.Text = "厂商" + intFrameContentVendor;
+                                        // 1 0x0001 ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）
+                                        //string frameProtocol = frameContent.Substring(0, 5).Replace(" ", "");
+                                        //int intFrameProtocol = Convert.ToInt32(frameProtocol, 16);
+                                        //switch (intFrameProtocol)
+                                        //{
+                                        //    case 0x0001:
+                                        ResProtocol.Text = "ZigBee SZ9-GRM V3.01油田专用通讯协议（国产四信）";
+                                        ResProtocolDockPanel.Visibility = Visibility.Visible;
+                                        //        break;
+                                        //    default:
+                                        //        resProtocol.Text = "未知";
+                                        //        resProtocol.Foreground = new SolidColorBrush(Colors.Red);
+                                        //        break;
+                                        //}
                                     }
-                                    else if (intFrameContentVendor >= 0x8001 && intFrameContentVendor <= 0xFFFF)
+                                    catch (Exception ex)
                                     {
-                                        ResVendor.Text = "预留厂商";
-                                    }
-                                    else
-                                    {
-                                        ResVendor.Text = "未定义";
-                                        ResVendor.Foreground = new SolidColorBrush(Colors.Red);
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "通信协议解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
                                     }
 
-                                    ResVendorDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "厂商号解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 仪表类型
-                                try
-                                {
-                                    var frameContentType = frameContent.Substring(12, 5).Replace(" ", "");
-                                    var intFrameContentType = Convert.ToInt32(frameContentType, 16);
-                                    // 1  0x0001 无线一体化负荷
-                                    // 2  0x0002 无线压力
-                                    // 3  0x0003 无线温度
-                                    // 4  0x0004 无线电量
-                                    // 5  0x0005 无线角位移
-                                    // 6  0x0006 无线载荷
-                                    // 7  0x0007 无线扭矩
-                                    // 8  0x0008 无线动液面
-                                    // 9  0x0009 计量车
-                                    //    0x000B 无线压力温度一体化变送器
-                                    //    ......
-                                    // 10 0x1f00 控制器(RTU)设备
-                                    // 11 0x1f10 手操器
-                                    // 12 ......
-                                    // N  0x2000~0x4000 自定义
-                                    //    0x2000 无线死点开关
-                                    //    0x3000 无线拉线位移校准传感器
-                                    //    0x3001 无线拉线位移功图校准传感器
-                                    switch (intFrameContentType)
-                                    {
-                                        case 0x0001:
-                                            ResType.Text = "无线一体化负荷";
-                                            break;
-                                        case 0x0002:
-                                            ResType.Text = "无线压力";
-                                            break;
-                                        case 0x0003:
-                                            ResType.Text = "无线温度";
-                                            break;
-                                        case 0x0004:
-                                            ResType.Text = "无线电量";
-                                            break;
-                                        case 0x0005:
-                                            ResType.Text = "无线角位移";
-                                            break;
-                                        case 0x0006:
-                                            ResType.Text = "无线载荷";
-                                            break;
-                                        case 0x0007:
-                                            ResType.Text = "无线扭矩";
-                                            break;
-                                        case 0x0008:
-                                            ResType.Text = "无线动液面";
-                                            break;
-                                        case 0x0009:
-                                            ResType.Text = "计量车";
-                                            break;
-                                        case 0x000B:
-                                            ResType.Text = "无线压力温度一体化变送器";
-                                            break;
-                                        case 0x1F00:
-                                            ResType.Text = "控制器(RTU)设备";
-                                            break;
-                                        case 0x1F10:
-                                            ResType.Text = "手操器";
-                                            break;
-                                        // 自定义
-                                        case 0x2000:
-                                            ResType.Text = "温度型";
-                                            break;
-                                        case 0x3000:
-                                            ResType.Text = "无线拉线位移校准传感器";
-                                            break;
-                                        case 0x3001:
-                                            ResType.Text = "无线拉线位移功图校准传感器";
-                                            break;
-                                        default:
-                                            ResType.Clear();
-                                            break;
-                                    }
-
-                                    while (ResType.Text.Trim() == string.Empty)
-                                        if (intFrameContentType <= 0x4000 && intFrameContentType >= 0x3000)
-                                        {
-                                            ResType.Text = "自定义";
-                                        }
-                                        else
-                                        {
-                                            ResType.Text = "未定义";
-                                            ResType.Foreground = new SolidColorBrush(Colors.Red);
-                                        }
-
-                                    ResTypeDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "仪表类型解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 仪表组号
-                                try
-                                {
-                                    ResGroup.Text =
-                                        Convert.ToInt32(frameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" +
-                                        Convert.ToInt32(frameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
-                                    ResGroup.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "仪表组号解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 数据类型
-                                try
-                                {
-                                    var frameContentFunctionData = frameContent.Substring(24, 5).Replace(" ", "");
-                                    var intFrameContentFunctionData = Convert.ToInt32(frameContentFunctionData, 16);
-                                    // 1  0x0000 常规数据
-                                    // 2  ……
-                                    // 3  0x0010 仪表参数
-                                    // 4  ……
-                                    // 5  0x0020 读数据命令
-                                    // 6 
-                                    // 7  ……
-                                    // 8 
-                                    // 9 
-                                    // 10 ……
-                                    // 11 
-                                    // 12 ……
-                                    // 13 0x0100 控制器参数写应答（控制器应答命令）
-                                    // 14 0x0101 控制器读仪表参数应答（控制器应答命令）
-                                    // 15 ……
-                                    // 16 0x0200 控制器应答一体化载荷位移示功仪功图参数应答（控制器应答命令触发功图采集）
-                                    // 17 0x0201 控制器应答功图数据命令
-                                    // 18 0x0202 控制器读功图数据应答（控制器应答命令读已有功图）
-                                    // 19 ……
-                                    // 20 0x0300 控制器(RTU)对仪表控制命令
-                                    // 21 0x400~0x47f 配置协议命令
-                                    // 22 0x480~0x5ff 标定协议命令
-                                    // 23 0x1000~0x2000 厂家自定义数据类型
-                                    // 24 ……
-                                    // 25 0x8000－0xffff 预留
-                                    switch (intFrameContentFunctionData)
-                                    {
-                                        case 0x0000:
-                                            ResFunctionData.Text = "常规数据";
-                                            break;
-                                        case 0x0010:
-                                            ResFunctionData.Text = "仪表参数";
-                                            break;
-                                        case 0x0020:
-                                            ResFunctionData.Text = "读数据命令";
-                                            break;
-                                        case 0x0100:
-                                            ResFunctionData.Text = "控制器参数写应答（控制器应答命令）";
-                                            break;
-                                        case 0x0101:
-                                            ResFunctionData.Text = "控制器读仪表参数应答（控制器应答命令）";
-                                            break;
-                                        case 0x0200:
-                                            ResFunctionData.Text = "控制器应答一体化载荷位移示功仪功图参数应答（控制器应答命令触发功图采集）";
-                                            break;
-                                        case 0x0201:
-                                            ResFunctionData.Text = "控制器应答功图数据命令";
-                                            break;
-                                        case 0x0202:
-                                            ResFunctionData.Text = "控制器读功图数据应答（控制器应答命令读已有功图）";
-                                            break;
-                                        case 0x0300:
-                                            ResFunctionData.Text = "控制器(RTU)对仪表控制命令";
-                                            break;
-                                        default:
-                                            ResType.Clear();
-                                            break;
-                                    }
-
-                                    while (ResType.Text.Trim() == string.Empty)
-                                        if (intFrameContentFunctionData >= 0x400 &&
-                                            intFrameContentFunctionData <= 0x47f)
-                                        {
-                                            ResFunctionData.Text = "配置协议命令";
-                                        }
-                                        else if (intFrameContentFunctionData >= 0x480 &&
-                                                 intFrameContentFunctionData <= 0x5ff)
-                                        {
-                                            ResFunctionData.Text = "标定协议命令";
-                                        }
-                                        else if (intFrameContentFunctionData >= 0x1000 &&
-                                                 intFrameContentFunctionData <= 0x2000)
-                                        {
-                                            ResFunctionData.Text = "厂家自定义数据类型";
-                                        }
-                                        else if (intFrameContentFunctionData >= 0x8000 &&
-                                                 intFrameContentFunctionData <= 0xffff)
-                                        {
-                                            ResFunctionData.Text = "预留";
-                                        }
-                                        else
-                                        {
-                                            ResFunctionData.Text = "未定义";
-                                            ResFunctionData.Foreground = new SolidColorBrush(Colors.Red);
-                                            break;
-                                        }
-
-                                    ResTypeDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "数据类型解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-                            }
-                            // 无线仪表数据段
-                            // 通信效率
-                            try
-                            {
-                                ResSucRate.Text = Convert.ToInt32(frameContent.Substring(30, 2), 16) + "%";
-                                ResSucRateDockPanel.Visibility = Visibility.Visible;
-                            }
-                            catch (Exception ex)
-                            {
-                                var str = ex.StackTrace;
-                                Console.WriteLine(str);
-                                // 异常时显示提示文字
-                                StatusTextBlock.Text = "通信效率解析出错！";
-                                TurnOnButton.IsChecked = false;
-                                return;
-                            }
-
-                            // 电池电压
-                            try
-                            {
-                                ResBatVol.Text = Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
-                                ResBatVolDockPanel.Visibility = Visibility.Visible;
-                            }
-                            catch (Exception ex)
-                            {
-                                var str = ex.StackTrace;
-                                Console.WriteLine(str);
-                                // 异常时显示提示文字
-                                StatusTextBlock.Text = "电池电压解析出错！";
-                                TurnOnButton.IsChecked = false;
-                                return;
-                            }
-
-                            // 休眠时间
-                            try
-                            {
-                                var sleepTime = Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""), 16);
-                                ResSleepTime.Text = sleepTime + "秒";
-                                ResSleepTimeDockPanel.Visibility = Visibility.Visible;
-                                if (RegularDataUpdateRate.Text == "")
-                                    RegularDataUpdateRate.Text = Convert.ToString(sleepTime);
-                            }
-                            catch (Exception ex)
-                            {
-                                var str = ex.StackTrace;
-                                Console.WriteLine(str);
-                                // 异常时显示提示文字
-                                StatusTextBlock.Text = "休眠时间解析出错！";
-                                TurnOnButton.IsChecked = false;
-                                return;
-                            }
-
-                            // 仪表状态
-                            try
-                            {
-                                var frameStatue = frameContent.Substring(42, 5).Replace(" ", "");
-                                var binFrameStatue = Convert.ToString(Convert.ToInt32(frameStatue, 16), 2)
-                                    .PadLeft(8, '0');
-                                if (Convert.ToInt32(binFrameStatue.Replace(" ", ""), 2) != 0)
-                                {
-                                    ResStatue.Text = "故障";
-                                    var failureMessage = "";
-                                    var count = 0;
-                                    // 1 Bit0 仪表故障
-                                    // 2 Bit1 参数错误
-                                    // 3 Bit2 电池欠压，日月协议中仍然保留
-                                    // 4 Bit3 AI1 上限报警
-                                    // 5 Bit4 AI1 下限报警
-                                    // 6 Bit5 AI2 上限报警
-                                    // 7 Bit6 AI2 下限报警
-                                    // 8 Bit7 预留
-                                    for (var a = 0; a < 8; a++)
-                                        // 从第0位到第7位
-                                        if (binFrameStatue.Substring(a, 1) == "1")
-                                            switch (a)
-                                            {
-                                                case 0:
-                                                    failureMessage += ++count + " 仪表故障\n";
-                                                    break;
-                                                case 1:
-                                                    failureMessage += ++count + " 参数故障\n";
-                                                    break;
-                                                case 2:
-                                                    failureMessage += ++count + " 电池欠压\n";
-                                                    break;
-                                                case 3:
-                                                    failureMessage += ++count + " 压力上限报警\n";
-                                                    break;
-                                                case 4:
-                                                    failureMessage += ++count + " 压力下限报警\n";
-                                                    break;
-                                                case 5:
-                                                    failureMessage += ++count + " 温度上限报警\n";
-                                                    break;
-                                                case 6:
-                                                    failureMessage += ++count + " 温度下限报警\n";
-                                                    break;
-                                                case 7:
-                                                    failureMessage += ++count + " 未定义故障\n";
-                                                    break;
-                                                default:
-                                                    failureMessage += "参数错误\n";
-                                                    break;
-                                            }
-
-                                    StatusTextBlock.Text = failureMessage;
-                                    //string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
-                                    //string caption = "设备故障";
-                                    //MessageBoxButton button = MessageBoxButton.OK;
-                                    //MessageBoxImage icon = MessageBoxImage.Error;
-                                    //MessageBox.Show(messageBoxText, caption, button, icon);
-                                }
-                                else
-                                {
-                                    ResStatue.Text = "正常";
-                                }
-
-                                ResStatueDockPanel.Visibility = Visibility.Visible;
-                            }
-                            catch (Exception ex)
-                            {
-                                var str = ex.StackTrace;
-                                Console.WriteLine(str);
-                                // 异常时显示提示文字
-                                StatusTextBlock.Text = "仪表状态解析出错！";
-                                TurnOnButton.IsChecked = false;
-                                return;
-                            }
-
-                            // 运行时间
-                            try
-                            {
-                                ResTime.Text = Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""), 16) +
-                                               "小时";
-                                ResTimeDockPanel.Visibility = Visibility.Visible;
-                            }
-                            catch (Exception ex)
-                            {
-                                var str = ex.StackTrace;
-                                Console.WriteLine(str);
-                                // 异常时显示提示文字
-                                StatusTextBlock.Text = "运行时间解析出错！";
-                                TurnOnButton.IsChecked = false;
-                                return;
-                            }
-
-                            // 实时数据
-                            try
-                            {
-                                var frameResData = Convert
-                                    .ToInt32(frameContent.Substring(54, 5).Replace(" ", ""), 16).ToString();
-                                ResData.Text = frameResData;
-                                ResDataDockPanel.Visibility = Visibility.Visible;
-                                try
-                                {
-                                    realTimeData = Convert.ToDouble(frameResData);
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                }
-
-                                AnimatedPlot();
-                            }
-                            catch (Exception ex)
-                            {
-                                var str = ex.StackTrace;
-                                Console.WriteLine(str);
-                                // 异常时显示提示文字
-                                StatusTextBlock.Text = "实时数据解析出错！";
-                                TurnOnButton.IsChecked = false;
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            ResCyclicRedundancyCheck.Text = "未通过";
-                            ResCyclicRedundancyCheck.Foreground = new SolidColorBrush(Colors.Red);
-                        }
-
-                        ResCyclicRedundancyCheckDockPanel.Visibility = Visibility.Visible;
-                    }
-                        break;
-                    case "7E":
-                    {
-                        //字符串校验
-                        var calCheckCode = CalCheckCode_7E(txt);
-                        if (calCheckCode == frameCyclicRedundancyCheck)
-                            //if (true)
-                        {
-                            ResCyclicRedundancyCheck.Text = "通过";
-                            // 校验成功写入其他解析参数
-                            // 无线仪表数据域帧头
-                            {
-                                // 通信协议
-                                try
-                                {
-                                    // 1 0x0001 ZigBee（Digi International）
-                                    //string frameProtocol = frameContent.Substring(0, 5).Replace(" ", "");
-                                    //int intFrameProtocol = Convert.ToInt32(frameProtocol, 16);
-                                    //switch (intFrameProtocol)
-                                    //{
-                                    //    case 0x0001:
-                                    ResProtocol.Text = isLoRaFlag ? "LoRa（Semtech）" : "ZigBee（Digi International）";
-
-                                    ResProtocolDockPanel.Visibility = Visibility.Visible;
-                                    //        break;
-                                    //    default:
-                                    //        resProtocol.Text = "未知";
-                                    //        resProtocol.Foreground = new SolidColorBrush(Colors.Red);
-                                    //        break;
-                                    //}
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "通信协议解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 网络地址
-                                try
-                                {
-                                    if (isLoRaFlag)
-                                    {
-                                        ResAddress.Text = "透传模式";
-                                        ResAddressDockPanel.Visibility = Visibility.Visible;
-                                    }
-                                    else
+                                    // 网络地址
+                                    try
                                     {
                                         var frameContentAddress =
-                                            (frameAddress.Substring(6, 2) + frameAddress.Substring(3, 2)).Replace(" ",
-                                                "");
+                                            (FrameAddress.Substring(3, 2) + FrameAddress.Substring(0, 2)).Replace(" ", "");
                                         var intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
                                         ResAddress.Text = intFrameContentAddress.ToString();
-                                        ResAddressDockPanel.Visibility = Visibility.Visible;
+                                        ResAddress.Visibility = Visibility.Visible;
                                     }
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "网络地址解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 厂商号
-                                try
-                                {
-                                    var frameContentVendor = frameContent.Substring(6, 5).Replace(" ", "");
-                                    var intFrameContentVendor = Convert.ToInt32(frameContentVendor, 16);
-                                    // 1 0x0001 厂商1
-                                    // 2 0x0002 厂商2
-                                    // 3 0x0003 厂商3
-                                    // 4 ......
-                                    // N 0x8001~0xFFFF 预留
-                                    if (intFrameContentVendor > 0x0000 && intFrameContentVendor < 0x8001)
+                                    catch (Exception ex)
                                     {
-                                        ResVendor.Text = "厂商" + intFrameContentVendor;
-                                    }
-                                    else if (intFrameContentVendor >= 0x8001 && intFrameContentVendor <= 0xFFFF)
-                                    {
-                                        ResVendor.Text = "预留厂商";
-                                    }
-                                    else
-                                    {
-                                        ResVendor.Text = "未定义";
-                                        ResVendor.Foreground = new SolidColorBrush(Colors.Red);
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "网络地址解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
                                     }
 
-                                    ResVendorDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "厂商号解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 仪表类型
-                                try
-                                {
-                                    var frameContentType = frameContent.Substring(12, 5).Replace(" ", "");
-                                    var intFrameContentType = Convert.ToInt32(frameContentType, 16);
-                                    // 1  0x0001 无线一体化负荷
-                                    // 2  0x0002 无线压力
-                                    // 3  0x0003 无线温度
-                                    // 4  0x0004 无线电量
-                                    // 5  0x0005 无线角位移
-                                    // 6  0x0006 无线载荷
-                                    // 7  0x0007 无线扭矩
-                                    // 8  0x0008 无线动液面
-                                    // 9  0x0009 计量车
-                                    //    0x000B 无线压力温度一体化变送器
-                                    //    ......
-                                    // 10 0x1f00 控制器(RTU)设备
-                                    // 11 0x1f10 手操器
-                                    // 12 ......
-                                    // N  0x2000~0x4000 自定义
-                                    //    0x2000 无线死点开关
-                                    //    0x3000 无线拉线位移校准传感器
-                                    //    0x3001 无线拉线位移功图校准传感器
-                                    switch (intFrameContentType)
+                                    // 厂商号
+                                    try
                                     {
-                                        case 0x0001:
-                                            ResType.Text = "无线一体化负荷";
-                                            break;
-                                        case 0x0002:
-                                            ResType.Text = "无线压力";
-                                            break;
-                                        case 0x0003:
-                                            ResType.Text = "无线温度";
-                                            break;
-                                        case 0x0004:
-                                            ResType.Text = "无线电量";
-                                            break;
-                                        case 0x0005:
-                                            ResType.Text = "无线角位移";
-                                            break;
-                                        case 0x0006:
-                                            ResType.Text = "无线载荷";
-                                            break;
-                                        case 0x0007:
-                                            ResType.Text = "无线扭矩";
-                                            break;
-                                        case 0x0008:
-                                            ResType.Text = "无线动液面";
-                                            break;
-                                        case 0x0009:
-                                            ResType.Text = "计量车";
-                                            break;
-                                        case 0x000B:
-                                            ResType.Text = "无线压力温度一体化变送器";
-                                            break;
-                                        case 0x1F00:
-                                            ResType.Text = "控制器(RTU)设备";
-                                            break;
-                                        case 0x1F10:
-                                            ResType.Text = "手操器";
-                                            break;
-                                        // 自定义
-                                        case 0x2000:
-                                            ResType.Text = "温度型";
-                                            break;
-                                        case 0x3000:
-                                            ResType.Text = "无线拉线位移校准传感器";
-                                            break;
-                                        case 0x3001:
-                                            ResType.Text = "无线拉线位移功图校准传感器";
-                                            break;
-                                        default:
-                                            ResType.Clear();
-                                            break;
-                                    }
-
-                                    while (ResType.Text.Trim() == string.Empty)
-                                        if (intFrameContentType <= 0x4000 && intFrameContentType >= 0x3000)
+                                        var frameContentVendor = FrameContent.Substring(6, 5).Replace(" ", "");
+                                        var intFrameContentVendor = Convert.ToInt32(frameContentVendor, 16);
+                                        // 1 0x0001 厂商1
+                                        // 2 0x0002 厂商2
+                                        // 3 0x0003 厂商3
+                                        // 4 ......
+                                        // N 0x8001~0xFFFF 预留
+                                        if (intFrameContentVendor > 0x0000 && intFrameContentVendor < 0x8001)
                                         {
-                                            ResType.Text = "自定义";
+                                            ResVendor.Text = "厂商" + intFrameContentVendor;
+                                        }
+                                        else if (intFrameContentVendor >= 0x8001 && intFrameContentVendor <= 0xFFFF)
+                                        {
+                                            ResVendor.Text = "预留厂商";
                                         }
                                         else
                                         {
-                                            ResType.Text = "未定义";
-                                            ResType.Foreground = new SolidColorBrush(Colors.Red);
+                                            ResVendor.Text = "未定义";
+                                            ResVendor.Foreground = new SolidColorBrush(Colors.Red);
                                         }
 
-                                    ResTypeDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "仪表类型解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 仪表组号
-                                try
-                                {
-                                    ResGroup.Text =
-                                        Convert.ToInt32(frameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" +
-                                        Convert.ToInt32(frameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
-                                    ResGroupDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "仪表组号解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
-                                }
-
-                                // 根据不同数据类型解析其他数据
-                                try
-                                {
-                                    var frameContentFunctionData = frameContent.Substring(24, 5).Replace(" ", "");
-                                    var intFrameContentFunctionData = Convert.ToInt32(frameContentFunctionData, 16);
-                                    // 1  0x0000 常规数据
-                                    // 2  ……
-                                    // 3  0x0010 仪表参数
-                                    // 4  ……
-                                    // 5  0x0020 读数据命令
-                                    // 6 
-                                    // 7  ……
-                                    // 8 
-                                    // 9 
-                                    // 10 ……
-                                    // 11 
-                                    // 12 ……
-                                    // 13 0x0100 控制器参数写应答（控制器应答命令）
-                                    // 14 0x0101 控制器读仪表参数应答（控制器应答命令）
-                                    // 15 ……
-                                    // 16 0x0200 控制器应答一体化载荷位移示功仪功图参数应答（控制器应答命令触发功图采集）
-                                    // 17 0x0201 控制器应答功图数据命令
-                                    // 18 0x0202 控制器读功图数据应答（控制器应答命令读已有功图）
-                                    // 19 ……
-                                    // 20 0x0300 控制器(RTU)对仪表控制命令
-                                    // 21 0x400~0x47f 配置协议命令
-                                    // 22 0x480~0x5ff 标定协议命令
-                                    // 23 0x1000~0x2000 厂家自定义数据类型
-                                    // 24 ……
-                                    // 25 0x8000－0xffff 预留
-                                    switch (intFrameContentFunctionData)
+                                        ResVendorDockPanel.Visibility = Visibility.Visible;
+                                    }
+                                    catch (Exception ex)
                                     {
-                                        case 0x0000:
-                                            ResFunctionData.Text = "常规数据（仪表实时数据）";
-                                            if ((txt.Length + 1) / 3 == 42 ||
-                                                (txt.Length + 1) / 3 == 24)
-                                            {
-                                                // 无线仪表数据段
-                                                // 通信效率
-                                                try
-                                                {
-                                                    ResSucRate.Text =
-                                                        Convert.ToInt32(frameContent.Substring(30, 2), 16) + "%";
-                                                    ResSucRateDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "通信效率解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 电池电压
-                                                try
-                                                {
-                                                    ResBatVol.Text =
-                                                        Convert.ToInt32(frameContent.Substring(33, 2), 16) + "%";
-                                                    ResBatVolDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "电池电压解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 休眠时间
-                                                try
-                                                {
-                                                    var sleepTime =
-                                                        Convert.ToInt32(frameContent.Substring(36, 5).Replace(" ", ""),
-                                                            16);
-                                                    ResSleepTime.Text = sleepTime + "秒";
-                                                    ResSleepTimeDockPanel.Visibility = Visibility.Visible;
-                                                    if (RegularDataUpdateRate.Text == "")
-                                                        RegularDataUpdateRate.Text = Convert.ToString(sleepTime);
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "休眠时间解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 仪表状态
-                                                try
-                                                {
-                                                    var frameStatue = frameContent.Substring(42, 5).Replace(" ", "");
-                                                    var binFrameStatue = Convert
-                                                        .ToString(Convert.ToInt32(frameStatue, 16), 2).PadLeft(8, '0');
-                                                    if (Convert.ToInt32(binFrameStatue.Replace(" ", ""), 2) != 0)
-                                                    {
-                                                        ResStatue.Text = "故障";
-                                                        var failureMessage = "";
-                                                        var count = 0;
-                                                        // 1 Bit0 仪表故障
-                                                        // 2 Bit1 参数错误
-                                                        // 3 Bit2 电池欠压，日月协议中仍然保留
-                                                        // 4 Bit3 AI1 上限报警
-                                                        // 5 Bit4 AI1 下限报警
-                                                        // 6 Bit5 AI2 上限报警
-                                                        // 7 Bit6 AI2 下限报警
-                                                        // 8 Bit7 预留
-                                                        for (var a = 0; a < 8; a++)
-                                                            // 从第0位到第7位
-                                                            if (binFrameStatue.Substring(a, 1) == "1")
-                                                                switch (a)
-                                                                {
-                                                                    case 0:
-                                                                        failureMessage += ++count + " 仪表故障\n";
-                                                                        break;
-                                                                    case 1:
-                                                                        failureMessage += ++count + " 参数故障\n";
-                                                                        break;
-                                                                    case 2:
-                                                                        failureMessage += ++count + " 电池欠压\n";
-                                                                        break;
-                                                                    case 3:
-                                                                        failureMessage += ++count + " 压力上限报警\n";
-                                                                        break;
-                                                                    case 4:
-                                                                        failureMessage += ++count + " 压力下限报警\n";
-                                                                        break;
-                                                                    case 5:
-                                                                        failureMessage += ++count + " 温度上限报警\n";
-                                                                        break;
-                                                                    case 6:
-                                                                        failureMessage += ++count + " 温度下限报警\n";
-                                                                        break;
-                                                                    case 7:
-                                                                        failureMessage += ++count + " 未定义故障\n";
-                                                                        break;
-                                                                    default:
-                                                                        failureMessage += "参数错误\n";
-                                                                        break;
-                                                                }
-
-                                                        StatusTextBlock.Text = failureMessage;
-                                                        //string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
-                                                        //string caption = "设备故障";
-                                                        //MessageBoxButton button = MessageBoxButton.OK;
-                                                        //MessageBoxImage icon = MessageBoxImage.Error;
-                                                        //MessageBox.Show(messageBoxText, caption, button, icon);
-                                                    }
-                                                    else
-                                                    {
-                                                        ResStatue.Text = "正常";
-                                                    }
-
-                                                    ResStatueDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "仪表状态解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 运行时间
-                                                try
-                                                {
-                                                    ResTime.Text =
-                                                        Convert.ToInt32(frameContent.Substring(48, 5).Replace(" ", ""),
-                                                            16) + "小时";
-                                                    ResTimeDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "运行时间解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 实时数据
-                                                try
-                                                {
-                                                    //string frameResData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
-                                                    //resData.Text = Convert.ToInt32(frameResData, 16) + "MPa";
-                                                    // 十六进制字符串转换为浮点数字符串
-                                                    var frameResData =
-                                                        frameContent.Substring(48, 11).Replace(" ", "");
-                                                    var flFrameData = HexStrToFloat(frameResData);
-                                                    realTimeData = flFrameData;
-                                                    // 单位类型
-                                                    //var frameContentType =
-                                                    //    frameContent.Substring(12, 5).Replace(" ", "");
-                                                    //var type = "";
-                                                    //switch (intFrameContentType)
-                                                    //{
-                                                    //    case 0x0002: type = "Pa"; break;
-                                                    //    case 0x0003: type = "℃"; break;
-                                                    //    default: type = ""; break;
-                                                    //}
-                                                    ResData.Text = flFrameData.ToString(CultureInfo.InvariantCulture);
-                                                    ResDataDockPanel.Visibility = Visibility.Visible;
-                                                    AnimatedPlot();
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "实时数据解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-                                            }
-
-                                            break;
-                                        case 0x0010:
-                                            ResFunctionData.Text = "常规数据（仪表基本参数）";
-                                            if ((txt.Length + 1) / 3 == 96 ||
-                                                (txt.Length + 1) / 3 == 78)
-                                            {
-                                                // 无线仪表数据段
-                                                // 仪表型号
-                                                try
-                                                {
-                                                    ResModel.Text = frameContent.Substring(30, 23);
-                                                    ResModelDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "仪表型号解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 系列号
-                                                try
-                                                {
-                                                    ResFirmwareVersion.Text = frameContent.Substring(54, 47);
-                                                    ResFirmwareVersionDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "系列号解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 固件版本
-                                                try
-                                                {
-                                                    ResFirmwareVersion.Text = frameContent.Substring(102, 5);
-                                                    ResFirmwareVersionDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "固件版本解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 软件版本
-                                                try
-                                                {
-                                                    ResSoftwareVersion.Text = frameContent.Substring(108, 5);
-                                                    ResSoftwareVersionDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "软件版本解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 量程下限
-                                                try
-                                                {
-                                                    ResLowRange.Text = frameContent.Substring(114, 5);
-                                                    ResLowRangeDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "量程下限解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 量程上限
-                                                try
-                                                {
-                                                    ResHighRange.Text = frameContent.Substring(120, 5);
-                                                    ResHighRangeDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "量程上限解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 测量精度
-                                                try
-                                                {
-                                                    ResMeasurementAccuracy.Text = frameContent.Substring(126, 5);
-                                                    ResMeasurementAccuracyDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "测量精度解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 防护等级
-                                                try
-                                                {
-                                                    ResProtectionLevel.Text = frameContent.Substring(132, 23);
-                                                    ResProtectionLevelDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "防护等级解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 防爆等级
-                                                try
-                                                {
-                                                    ResExplosionProofGrade.Text = frameContent.Substring(156, 35);
-                                                    ResExplosionProofGradeDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "防爆等级解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-
-                                                // 说明
-                                                try
-                                                {
-                                                    ResIllustrate.Text = frameContent.Substring(191, 29);
-                                                    ResIllustrateDockPanel.Visibility = Visibility.Visible;
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    var str = ex.StackTrace;
-                                                    Console.WriteLine(str);
-                                                    // 异常时显示提示文字
-                                                    StatusTextBlock.Text = "说明解析出错！";
-                                                    TurnOnButton.IsChecked = false;
-                                                    return;
-                                                }
-                                            }
-
-                                            break;
-                                        case 0x0020:
-                                            ResFunctionData.Text = "读数据命令";
-                                            break;
-                                        case 0x0100:
-                                            ResFunctionData.Text = "控制器参数写应答（控制器应答命令）";
-                                            break;
-                                        case 0x0101:
-                                            ResFunctionData.Text = "控制器读仪表参数应答（控制器应答命令）";
-                                            break;
-                                        case 0x0200:
-                                            ResFunctionData.Text = "控制器应答一体化载荷位移示功仪功图参数应答（控制器应答命令触发功图采集）";
-                                            break;
-                                        case 0x0201:
-                                            ResFunctionData.Text = "控制器应答功图数据命令";
-                                            break;
-                                        case 0x0202:
-                                            ResFunctionData.Text = "控制器读功图数据应答（控制器应答命令读已有功图）";
-                                            break;
-                                        case 0x0300:
-                                            ResFunctionData.Text = "控制器(RTU)对仪表控制命令";
-                                            break;
-                                        default:
-                                            ResType.Clear();
-                                            break;
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "厂商号解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
                                     }
 
-                                    while (ResType.Text.Trim() == string.Empty)
-                                        if (intFrameContentFunctionData >= 0x400 &&
-                                            intFrameContentFunctionData <= 0x47f)
+                                    // 仪表类型
+                                    try
+                                    {
+                                        var frameContentType = FrameContent.Substring(12, 5).Replace(" ", "");
+                                        var intFrameContentType = Convert.ToInt32(frameContentType, 16);
+                                        // 1  0x0001 无线一体化负荷
+                                        // 2  0x0002 无线压力
+                                        // 3  0x0003 无线温度
+                                        // 4  0x0004 无线电量
+                                        // 5  0x0005 无线角位移
+                                        // 6  0x0006 无线载荷
+                                        // 7  0x0007 无线扭矩
+                                        // 8  0x0008 无线动液面
+                                        // 9  0x0009 计量车
+                                        //    0x000B 无线压力温度一体化变送器
+                                        //    ......
+                                        // 10 0x1f00 控制器(RTU)设备
+                                        // 11 0x1f10 手操器
+                                        // 12 ......
+                                        // N  0x2000~0x4000 自定义
+                                        //    0x2000 无线死点开关
+                                        //    0x3000 无线拉线位移校准传感器
+                                        //    0x3001 无线拉线位移功图校准传感器
+                                        switch (intFrameContentType)
                                         {
-                                            ResFunctionData.Text = "配置协议命令";
-                                        }
-                                        else if (intFrameContentFunctionData >= 0x480 &&
-                                                 intFrameContentFunctionData <= 0x5ff)
-                                        {
-                                            ResFunctionData.Text = "标定协议命令";
-                                        }
-                                        else if (intFrameContentFunctionData >= 0x1000 &&
-                                                 intFrameContentFunctionData <= 0x2000)
-                                        {
-                                            ResFunctionData.Text = "厂家自定义数据类型";
-                                        }
-                                        else if (intFrameContentFunctionData >= 0x8000 &&
-                                                 intFrameContentFunctionData <= 0xffff)
-                                        {
-                                            ResFunctionData.Text = "预留";
-                                        }
-                                        else
-                                        {
-                                            ResFunctionData.Text = "未定义";
-                                            ResFunctionData.Foreground = new SolidColorBrush(Colors.Red);
-                                            break;
+                                            case 0x0001:
+                                                ResType.Text = "无线一体化负荷";
+                                                break;
+                                            case 0x0002:
+                                                ResType.Text = "无线压力";
+                                                break;
+                                            case 0x0003:
+                                                ResType.Text = "无线温度";
+                                                break;
+                                            case 0x0004:
+                                                ResType.Text = "无线电量";
+                                                break;
+                                            case 0x0005:
+                                                ResType.Text = "无线角位移";
+                                                break;
+                                            case 0x0006:
+                                                ResType.Text = "无线载荷";
+                                                break;
+                                            case 0x0007:
+                                                ResType.Text = "无线扭矩";
+                                                break;
+                                            case 0x0008:
+                                                ResType.Text = "无线动液面";
+                                                break;
+                                            case 0x0009:
+                                                ResType.Text = "计量车";
+                                                break;
+                                            case 0x000B:
+                                                ResType.Text = "无线压力温度一体化变送器";
+                                                break;
+                                            case 0x1F00:
+                                                ResType.Text = "控制器(RTU)设备";
+                                                break;
+                                            case 0x1F10:
+                                                ResType.Text = "手操器";
+                                                break;
+                                            // 自定义
+                                            case 0x2000:
+                                                ResType.Text = "温度型";
+                                                break;
+                                            case 0x3000:
+                                                ResType.Text = "无线拉线位移校准传感器";
+                                                break;
+                                            case 0x3001:
+                                                ResType.Text = "无线拉线位移功图校准传感器";
+                                                break;
+                                            default:
+                                                ResType.Clear();
+                                                break;
                                         }
 
-                                    ResFunctionDataDockPanel.Visibility = Visibility.Visible;
-                                }
-                                catch (Exception ex)
-                                {
-                                    var str = ex.StackTrace;
-                                    Console.WriteLine(str);
-                                    // 异常时显示提示文字
-                                    StatusTextBlock.Text = "数据类型解析出错！";
-                                    TurnOnButton.IsChecked = false;
-                                    return;
+                                        while (ResType.Text.Trim() == string.Empty)
+                                            if (intFrameContentType <= 0x4000 && intFrameContentType >= 0x3000)
+                                            {
+                                                ResType.Text = "自定义";
+                                            }
+                                            else
+                                            {
+                                                ResType.Text = "未定义";
+                                                ResType.Foreground = new SolidColorBrush(Colors.Red);
+                                            }
+
+                                        ResTypeDockPanel.Visibility = Visibility.Visible;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "仪表类型解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
+                                    }
+
+                                    // 仪表组号
+                                    try
+                                    {
+                                        ResGroup.Text =
+                                            Convert.ToInt32(FrameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" +
+                                            Convert.ToInt32(FrameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
+                                        ResGroup.Visibility = Visibility.Visible;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "仪表组号解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
+                                    }
+
+                                    // 数据类型
+                                    try
+                                    {
+                                        var frameContentFunctionData = FrameContent.Substring(24, 5).Replace(" ", "");
+                                        var intFrameContentFunctionData = Convert.ToInt32(frameContentFunctionData, 16);
+                                        // 1  0x0000 常规数据
+                                        // 2  ……
+                                        // 3  0x0010 仪表参数
+                                        // 4  ……
+                                        // 5  0x0020 读数据命令
+                                        // 6 
+                                        // 7  ……
+                                        // 8 
+                                        // 9 
+                                        // 10 ……
+                                        // 11 
+                                        // 12 ……
+                                        // 13 0x0100 控制器参数写应答（控制器应答命令）
+                                        // 14 0x0101 控制器读仪表参数应答（控制器应答命令）
+                                        // 15 ……
+                                        // 16 0x0200 控制器应答一体化载荷位移示功仪功图参数应答（控制器应答命令触发功图采集）
+                                        // 17 0x0201 控制器应答功图数据命令
+                                        // 18 0x0202 控制器读功图数据应答（控制器应答命令读已有功图）
+                                        // 19 ……
+                                        // 20 0x0300 控制器(RTU)对仪表控制命令
+                                        // 21 0x400~0x47f 配置协议命令
+                                        // 22 0x480~0x5ff 标定协议命令
+                                        // 23 0x1000~0x2000 厂家自定义数据类型
+                                        // 24 ……
+                                        // 25 0x8000－0xffff 预留
+                                        switch (intFrameContentFunctionData)
+                                        {
+                                            case 0x0000:
+                                                ResFunctionData.Text = "常规数据（仪表实时数据）";
+                                                if ((txt.Length + 1) / 3 == 27)
+                                                {
+                                                    // 无线仪表数据段
+                                                    // 通信效率
+                                                    try
+                                                    {
+                                                        ResSucRate.Text =
+                                                            Convert.ToInt32(FrameContent.Substring(30, 2), 16) + "%";
+                                                        ResSucRateDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "通信效率解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 电池电压
+                                                    try
+                                                    {
+                                                        ResBatVol.Text =
+                                                            Convert.ToInt32(FrameContent.Substring(33, 2), 16) + "%";
+                                                        ResBatVolDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "电池电压解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 休眠时间
+                                                    try
+                                                    {
+                                                        var sleepTime =
+                                                            Convert.ToInt32(FrameContent.Substring(36, 5).Replace(" ", ""),
+                                                                16);
+                                                        ResSleepTime.Text = sleepTime + "秒";
+                                                        ResSleepTimeDockPanel.Visibility = Visibility.Visible;
+                                                        if (RegularDataUpdateRate.Text == "")
+                                                            RegularDataUpdateRate.Text = Convert.ToString(sleepTime);
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "休眠时间解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 仪表状态
+                                                    try
+                                                    {
+                                                        var frameStatue = FrameContent.Substring(42, 5).Replace(" ", "");
+                                                        var binFrameStatue = Convert
+                                                            .ToString(Convert.ToInt32(frameStatue, 16), 2).PadLeft(8, '0');
+                                                        if (Convert.ToInt32(binFrameStatue.Replace(" ", ""), 2) != 0)
+                                                        {
+                                                            ResStatue.Text = "故障";
+                                                            var failureMessage = "";
+                                                            var count = 0;
+                                                            // 1 Bit0 仪表故障
+                                                            // 2 Bit1 参数错误
+                                                            // 3 Bit2 电池欠压，日月协议中仍然保留
+                                                            // 4 Bit3 AI1 上限报警
+                                                            // 5 Bit4 AI1 下限报警
+                                                            // 6 Bit5 AI2 上限报警
+                                                            // 7 Bit6 AI2 下限报警
+                                                            // 8 Bit7 预留
+                                                            for (var a = 0; a < 8; a++)
+                                                                // 从第0位到第7位
+                                                                if (binFrameStatue.Substring(a, 1) == "1")
+                                                                    switch (a)
+                                                                    {
+                                                                        case 0:
+                                                                            failureMessage += ++count + " 仪表故障\n";
+                                                                            break;
+                                                                        case 1:
+                                                                            failureMessage += ++count + " 参数故障\n";
+                                                                            break;
+                                                                        case 2:
+                                                                            failureMessage += ++count + " 电池欠压\n";
+                                                                            break;
+                                                                        case 3:
+                                                                            failureMessage += ++count + " 压力上限报警\n";
+                                                                            break;
+                                                                        case 4:
+                                                                            failureMessage += ++count + " 压力下限报警\n";
+                                                                            break;
+                                                                        case 5:
+                                                                            failureMessage += ++count + " 温度上限报警\n";
+                                                                            break;
+                                                                        case 6:
+                                                                            failureMessage += ++count + " 温度下限报警\n";
+                                                                            break;
+                                                                        case 7:
+                                                                            failureMessage += ++count + " 未定义故障\n";
+                                                                            break;
+                                                                        default:
+                                                                            failureMessage += "参数错误\n";
+                                                                            break;
+                                                                    }
+
+                                                            StatusTextBlock.Text = failureMessage;
+                                                            //string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
+                                                            //string caption = "设备故障";
+                                                            //MessageBoxButton button = MessageBoxButton.OK;
+                                                            //MessageBoxImage icon = MessageBoxImage.Error;
+                                                            //MessageBox.Show(messageBoxText, caption, button, icon);
+                                                        }
+                                                        else
+                                                        {
+                                                            ResStatue.Text = "正常";
+                                                        }
+
+                                                        ResStatueDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "仪表状态解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 运行时间
+                                                    try
+                                                    {
+                                                        ResTime.Text =
+                                                            Convert.ToInt32(FrameContent.Substring(48, 5).Replace(" ", ""),
+                                                                16) + "小时";
+                                                        ResTimeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "运行时间解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 实时数据
+                                                    try
+                                                    {
+                                                        var frameResData = Convert
+                                                            .ToInt32(FrameContent.Substring(54, 5).Replace(" ", ""), 16).ToString();
+                                                        ResData.Text = frameResData;
+                                                        ResDataDockPanel.Visibility = Visibility.Visible;
+                                                        try
+                                                        {
+                                                            RealTimeData = Convert.ToDouble(frameResData);
+                                                        }
+                                                        catch (Exception ex)
+                                                        {
+                                                            var str = ex.StackTrace;
+                                                            Console.WriteLine(str);
+                                                        }
+                                                        // 作图
+                                                        AnimatedPlot();
+                                                        // 写数据库
+                                                        if (SqlConnectButton.IsChecked == true
+                                                            && AutoSaveToSqlCheckBox.IsChecked.Value)
+                                                        {
+                                                            string type = ResType.Text, address = ResAddress.Text,
+                                                                protocol = ResProtocol.Text, data = ResData.Text,
+                                                                statue = ResStatue.Text, workSheet = WorkSheet;
+                                                            SqlConnection sql = CalibrationSqlConnect;
+                                                            DatabaseWrite(type, protocol, address, data, statue, workSheet, sql);
+                                                        }
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "实时数据解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                }
+
+                                                break;
+                                            case 0x0010:
+                                                ResFunctionData.Text = "常规数据（仪表基本参数）";
+                                                if ((txt.Length + 1) / 3 == 81)
+                                                {
+                                                    // 无线仪表数据段
+                                                    // 仪表型号
+                                                    try
+                                                    {
+                                                        ResModel.Text = FrameContent.Substring(30, 23);
+                                                        ResModelDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "仪表型号解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 系列号
+                                                    try
+                                                    {
+                                                        ResFirmwareVersion.Text = FrameContent.Substring(54, 47);
+                                                        ResFirmwareVersionDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "系列号解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 固件版本
+                                                    try
+                                                    {
+                                                        ResFirmwareVersion.Text = FrameContent.Substring(102, 5);
+                                                        ResFirmwareVersionDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "固件版本解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 软件版本
+                                                    try
+                                                    {
+                                                        ResSoftwareVersion.Text = FrameContent.Substring(108, 5);
+                                                        ResSoftwareVersionDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "软件版本解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 量程下限
+                                                    try
+                                                    {
+                                                        ResLowRange.Text = FrameContent.Substring(114, 5);
+                                                        ResLowRangeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "量程下限解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 量程上限
+                                                    try
+                                                    {
+                                                        ResHighRange.Text = FrameContent.Substring(120, 5);
+                                                        ResHighRangeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "量程上限解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 测量精度
+                                                    try
+                                                    {
+                                                        ResMeasurementAccuracy.Text = FrameContent.Substring(126, 5);
+                                                        ResMeasurementAccuracyDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "测量精度解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 防护等级
+                                                    try
+                                                    {
+                                                        ResProtectionLevel.Text = FrameContent.Substring(132, 23);
+                                                        ResProtectionLevelDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "防护等级解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 防爆等级
+                                                    try
+                                                    {
+                                                        ResExplosionProofGrade.Text = FrameContent.Substring(156, 35);
+                                                        ResExplosionProofGradeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "防爆等级解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 说明
+                                                    try
+                                                    {
+                                                        ResIllustrate.Text = FrameContent.Substring(191, 29);
+                                                        ResIllustrateDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "说明解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                }
+
+                                                break;
+                                            case 0x0020:
+                                                ResFunctionData.Text = "读数据命令";
+                                                break;
+                                            case 0x0100:
+                                                ResFunctionData.Text = "控制器参数写应答（控制器应答命令）";
+                                                break;
+                                            case 0x0101:
+                                                ResFunctionData.Text = "控制器读仪表参数应答（控制器应答命令）";
+                                                break;
+                                            case 0x0200:
+                                                ResFunctionData.Text = "控制器应答一体化载荷位移示功仪功图参数应答（控制器应答命令触发功图采集）";
+                                                break;
+                                            case 0x0201:
+                                                ResFunctionData.Text = "控制器应答功图数据命令";
+                                                break;
+                                            case 0x0202:
+                                                ResFunctionData.Text = "控制器读功图数据应答（控制器应答命令读已有功图）";
+                                                break;
+                                            case 0x0300:
+                                                ResFunctionData.Text = "控制器(RTU)对仪表控制命令";
+                                                break;
+                                            default:
+                                                ResType.Clear();
+                                                break;
+                                        }
+
+                                        while (ResType.Text.Trim() == string.Empty)
+                                            if (intFrameContentFunctionData >= 0x400 &&
+                                                intFrameContentFunctionData <= 0x47f)
+                                            {
+                                                ResFunctionData.Text = "配置协议命令";
+                                            }
+                                            else if (intFrameContentFunctionData >= 0x480 &&
+                                                     intFrameContentFunctionData <= 0x5ff)
+                                            {
+                                                ResFunctionData.Text = "标定协议命令";
+                                            }
+                                            else if (intFrameContentFunctionData >= 0x1000 &&
+                                                     intFrameContentFunctionData <= 0x2000)
+                                            {
+                                                ResFunctionData.Text = "厂家自定义数据类型";
+                                            }
+                                            else if (intFrameContentFunctionData >= 0x8000 &&
+                                                     intFrameContentFunctionData <= 0xffff)
+                                            {
+                                                ResFunctionData.Text = "预留";
+                                            }
+                                            else
+                                            {
+                                                ResFunctionData.Text = "未定义";
+                                                ResFunctionData.Foreground = new SolidColorBrush(Colors.Red);
+                                                break;
+                                            }
+
+                                        ResTypeDockPanel.Visibility = Visibility.Visible;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "数据类型解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
+                                    }
                                 }
                             }
-                        }
-                        else
-                        {
-                            ResCyclicRedundancyCheck.Text = "未通过";
-                            ResCyclicRedundancyCheck.Foreground = new SolidColorBrush(Colors.Red);
-                        }
+                            else
+                            {
+                                ResCyclicRedundancyCheck.Text = "未通过";
+                                ResCyclicRedundancyCheck.Foreground = new SolidColorBrush(Colors.Red);
+                            }
 
-                        ResCyclicRedundancyCheckDockPanel.Visibility = Visibility.Visible;
-                    }
+                            ResCyclicRedundancyCheckDockPanel.Visibility = Visibility.Visible;
+                        }
+                        break;
+                    case "7E":
+                        {
+                            //字符串校验
+                            var calCheckCode = CalCheckCode_7E(txt);
+                            if (calCheckCode == FrameCyclicRedundancyCheck)
+                            //if (true)
+                            {
+                                ResCyclicRedundancyCheck.Text = "通过";
+                                // 校验成功写入其他解析参数
+                                // 无线仪表数据域帧头
+                                {
+                                    // 通信协议
+                                    try
+                                    {
+                                        ResProtocol.Text = IsLoRaFlag ? "LoRa（Semtech）" : "ZigBee（Digi International）";
+                                        ResProtocolDockPanel.Visibility = Visibility.Visible;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "通信协议解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
+                                    }
+
+                                    // 网络地址
+                                    try
+                                    {
+                                        if (IsLoRaFlag)
+                                        {
+                                            ResAddress.Text = "透传模式";
+                                            ResAddressDockPanel.Visibility = Visibility.Visible;
+                                        }
+                                        else
+                                        {
+                                            var frameContentAddress =
+                                                (FrameAddress.Substring(6, 2) + FrameAddress.Substring(3, 2)).Replace(" ",
+                                                    "");
+                                            var intFrameContentAddress = Convert.ToInt32(frameContentAddress, 16);
+                                            ResAddress.Text = intFrameContentAddress.ToString();
+                                            ResAddressDockPanel.Visibility = Visibility.Visible;
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "网络地址解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
+                                    }
+
+                                    // 厂商号
+                                    try
+                                    {
+                                        var frameContentVendor = FrameContent.Substring(6, 5).Replace(" ", "");
+                                        var intFrameContentVendor = Convert.ToInt32(frameContentVendor, 16);
+                                        // 1 0x0001 厂商1
+                                        // 2 0x0002 厂商2
+                                        // 3 0x0003 厂商3
+                                        // 4 ......
+                                        // N 0x8001~0xFFFF 预留
+                                        if (intFrameContentVendor > 0x0000 && intFrameContentVendor < 0x8001)
+                                        {
+                                            ResVendor.Text = "厂商" + intFrameContentVendor;
+                                        }
+                                        else if (intFrameContentVendor >= 0x8001 && intFrameContentVendor <= 0xFFFF)
+                                        {
+                                            ResVendor.Text = "预留厂商";
+                                        }
+                                        else
+                                        {
+                                            ResVendor.Text = "未定义";
+                                            ResVendor.Foreground = new SolidColorBrush(Colors.Red);
+                                        }
+
+                                        ResVendorDockPanel.Visibility = Visibility.Visible;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "厂商号解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
+                                    }
+
+                                    // 仪表类型
+                                    try
+                                    {
+                                        var frameContentType = FrameContent.Substring(12, 5).Replace(" ", "");
+                                        var intFrameContentType = Convert.ToInt32(frameContentType, 16);
+                                        // 1  0x0001 无线一体化负荷
+                                        // 2  0x0002 无线压力
+                                        // 3  0x0003 无线温度
+                                        // 4  0x0004 无线电量
+                                        // 5  0x0005 无线角位移
+                                        // 6  0x0006 无线载荷
+                                        // 7  0x0007 无线扭矩
+                                        // 8  0x0008 无线动液面
+                                        // 9  0x0009 计量车
+                                        //    0x000B 无线压力温度一体化变送器
+                                        //    ......
+                                        // 10 0x1f00 控制器(RTU)设备
+                                        // 11 0x1f10 手操器
+                                        // 12 ......
+                                        // N  0x2000~0x4000 自定义
+                                        //    0x2000 无线死点开关
+                                        //    0x3000 无线拉线位移校准传感器
+                                        //    0x3001 无线拉线位移功图校准传感器
+                                        switch (intFrameContentType)
+                                        {
+                                            case 0x0001:
+                                                ResType.Text = "无线一体化负荷";
+                                                break;
+                                            case 0x0002:
+                                                ResType.Text = "无线压力";
+                                                break;
+                                            case 0x0003:
+                                                ResType.Text = "无线温度";
+                                                break;
+                                            case 0x0004:
+                                                ResType.Text = "无线电量";
+                                                break;
+                                            case 0x0005:
+                                                ResType.Text = "无线角位移";
+                                                break;
+                                            case 0x0006:
+                                                ResType.Text = "无线载荷";
+                                                break;
+                                            case 0x0007:
+                                                ResType.Text = "无线扭矩";
+                                                break;
+                                            case 0x0008:
+                                                ResType.Text = "无线动液面";
+                                                break;
+                                            case 0x0009:
+                                                ResType.Text = "计量车";
+                                                break;
+                                            case 0x000B:
+                                                ResType.Text = "无线压力温度一体化变送器";
+                                                break;
+                                            case 0x1F00:
+                                                ResType.Text = "控制器(RTU)设备";
+                                                break;
+                                            case 0x1F10:
+                                                ResType.Text = "手操器";
+                                                break;
+                                            // 自定义
+                                            case 0x2000:
+                                                ResType.Text = "温度型";
+                                                break;
+                                            case 0x3000:
+                                                ResType.Text = "无线拉线位移校准传感器";
+                                                break;
+                                            case 0x3001:
+                                                ResType.Text = "无线拉线位移功图校准传感器";
+                                                break;
+                                            default:
+                                                ResType.Clear();
+                                                break;
+                                        }
+
+                                        while (ResType.Text.Trim() == string.Empty)
+                                            if (intFrameContentType <= 0x4000 && intFrameContentType >= 0x3000)
+                                            {
+                                                ResType.Text = "自定义";
+                                            }
+                                            else
+                                            {
+                                                ResType.Text = "未定义";
+                                                ResType.Foreground = new SolidColorBrush(Colors.Red);
+                                            }
+
+                                        ResTypeDockPanel.Visibility = Visibility.Visible;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "仪表类型解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
+                                    }
+
+                                    // 仪表组号
+                                    try
+                                    {
+                                        ResGroup.Text =
+                                            Convert.ToInt32(FrameContent.Substring(18, 2).Replace(" ", ""), 16) + "组" +
+                                            Convert.ToInt32(FrameContent.Substring(21, 2).Replace(" ", ""), 16) + "号";
+                                        ResGroupDockPanel.Visibility = Visibility.Visible;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "仪表组号解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
+                                    }
+
+                                    // 根据不同数据类型解析其他数据
+                                    try
+                                    {
+                                        var frameContentFunctionData = FrameContent.Substring(24, 5).Replace(" ", "");
+                                        var intFrameContentFunctionData = Convert.ToInt32(frameContentFunctionData, 16);
+                                        // 1  0x0000 常规数据
+                                        // 2  ……
+                                        // 3  0x0010 仪表参数
+                                        // 4  ……
+                                        // 5  0x0020 读数据命令
+                                        // 6 
+                                        // 7  ……
+                                        // 8 
+                                        // 9 
+                                        // 10 ……
+                                        // 11 
+                                        // 12 ……
+                                        // 13 0x0100 控制器参数写应答（控制器应答命令）
+                                        // 14 0x0101 控制器读仪表参数应答（控制器应答命令）
+                                        // 15 ……
+                                        // 16 0x0200 控制器应答一体化载荷位移示功仪功图参数应答（控制器应答命令触发功图采集）
+                                        // 17 0x0201 控制器应答功图数据命令
+                                        // 18 0x0202 控制器读功图数据应答（控制器应答命令读已有功图）
+                                        // 19 ……
+                                        // 20 0x0300 控制器(RTU)对仪表控制命令
+                                        // 21 0x400~0x47f 配置协议命令
+                                        // 22 0x480~0x5ff 标定协议命令
+                                        // 23 0x1000~0x2000 厂家自定义数据类型
+                                        // 24 ……
+                                        // 25 0x8000－0xffff 预留
+                                        switch (intFrameContentFunctionData)
+                                        {
+                                            case 0x0000:
+                                                ResFunctionData.Text = "常规数据（仪表实时数据）";
+                                                if ((txt.Length + 1) / 3 == 42 ||
+                                                    (txt.Length + 1) / 3 == 24)
+                                                {
+                                                    // 无线仪表数据段
+                                                    // 通信效率
+                                                    try
+                                                    {
+                                                        ResSucRate.Text =
+                                                            Convert.ToInt32(FrameContent.Substring(30, 2), 16) + "%";
+                                                        ResSucRateDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "通信效率解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 电池电压
+                                                    try
+                                                    {
+                                                        ResBatVol.Text =
+                                                            Convert.ToInt32(FrameContent.Substring(33, 2), 16) + "%";
+                                                        ResBatVolDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "电池电压解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 休眠时间
+                                                    try
+                                                    {
+                                                        var sleepTime =
+                                                            Convert.ToInt32(FrameContent.Substring(36, 5).Replace(" ", ""),
+                                                                16);
+                                                        ResSleepTime.Text = sleepTime + "秒";
+                                                        ResSleepTimeDockPanel.Visibility = Visibility.Visible;
+                                                        if (RegularDataUpdateRate.Text == "")
+                                                            RegularDataUpdateRate.Text = Convert.ToString(sleepTime);
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "休眠时间解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 仪表状态
+                                                    try
+                                                    {
+                                                        var frameStatue = FrameContent.Substring(42, 5).Replace(" ", "");
+                                                        var binFrameStatue = Convert
+                                                            .ToString(Convert.ToInt32(frameStatue, 16), 2).PadLeft(8, '0');
+                                                        if (Convert.ToInt32(binFrameStatue.Replace(" ", ""), 2) != 0)
+                                                        {
+                                                            ResStatue.Text = "故障";
+                                                            var failureMessage = "";
+                                                            var count = 0;
+                                                            // 1 Bit0 仪表故障
+                                                            // 2 Bit1 参数错误
+                                                            // 3 Bit2 电池欠压，日月协议中仍然保留
+                                                            // 4 Bit3 AI1 上限报警
+                                                            // 5 Bit4 AI1 下限报警
+                                                            // 6 Bit5 AI2 上限报警
+                                                            // 7 Bit6 AI2 下限报警
+                                                            // 8 Bit7 预留
+                                                            for (var a = 0; a < 8; a++)
+                                                                // 从第0位到第7位
+                                                                if (binFrameStatue.Substring(a, 1) == "1")
+                                                                    switch (a)
+                                                                    {
+                                                                        case 0:
+                                                                            failureMessage += ++count + " 仪表故障\n";
+                                                                            break;
+                                                                        case 1:
+                                                                            failureMessage += ++count + " 参数故障\n";
+                                                                            break;
+                                                                        case 2:
+                                                                            failureMessage += ++count + " 电池欠压\n";
+                                                                            break;
+                                                                        case 3:
+                                                                            failureMessage += ++count + " 压力上限报警\n";
+                                                                            break;
+                                                                        case 4:
+                                                                            failureMessage += ++count + " 压力下限报警\n";
+                                                                            break;
+                                                                        case 5:
+                                                                            failureMessage += ++count + " 温度上限报警\n";
+                                                                            break;
+                                                                        case 6:
+                                                                            failureMessage += ++count + " 温度下限报警\n";
+                                                                            break;
+                                                                        case 7:
+                                                                            failureMessage += ++count + " 未定义故障\n";
+                                                                            break;
+                                                                        default:
+                                                                            failureMessage += "参数错误\n";
+                                                                            break;
+                                                                    }
+
+                                                            StatusTextBlock.Text = failureMessage;
+                                                            //string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
+                                                            //string caption = "设备故障";
+                                                            //MessageBoxButton button = MessageBoxButton.OK;
+                                                            //MessageBoxImage icon = MessageBoxImage.Error;
+                                                            //MessageBox.Show(messageBoxText, caption, button, icon);
+                                                        }
+                                                        else
+                                                        {
+                                                            ResStatue.Text = "正常";
+                                                        }
+
+                                                        ResStatueDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "仪表状态解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 运行时间
+                                                    try
+                                                    {
+                                                        ResTime.Text =
+                                                            Convert.ToInt32(FrameContent.Substring(48, 5).Replace(" ", ""),
+                                                                16) + "小时";
+                                                        ResTimeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "运行时间解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 实时数据
+                                                    try
+                                                    {
+                                                        //string frameResData = frameContent.Substring(54, 5).Replace(" ", "").TrimStart('0');
+                                                        //resData.Text = Convert.ToInt32(frameResData, 16) + "MPa";
+                                                        // 十六进制字符串转换为浮点数字符串
+                                                        var frameResData =
+                                                            FrameContent.Substring(48, 11).Replace(" ", "");
+                                                        var flFrameData = HexStrToFloat(frameResData);
+                                                        RealTimeData = flFrameData;
+                                                        // 单位类型
+                                                        //var frameContentType =
+                                                        //    frameContent.Substring(12, 5).Replace(" ", "");
+                                                        //var type = "";
+                                                        //switch (intFrameContentType)
+                                                        //{
+                                                        //    case 0x0002: type = "Pa"; break;
+                                                        //    case 0x0003: type = "℃"; break;
+                                                        //    default: type = ""; break;
+                                                        //}
+                                                        ResData.Text = flFrameData.ToString(CultureInfo.InvariantCulture);
+                                                        ResDataDockPanel.Visibility = Visibility.Visible;
+                                                        // 作图
+                                                        AnimatedPlot();
+                                                        // 写数据库
+                                                        if (SqlConnectButton.IsChecked == true && AutoSaveToSqlCheckBox.IsChecked.Value)
+                                                        {
+                                                            string type = ResType.Text, address = ResAddress.Text, protocol = ResProtocol.Text, data = ResData.Text, statue = ResStatue.Text, workSheet = WorkSheet;
+                                                            SqlConnection sql = CalibrationSqlConnect;
+                                                            DatabaseWrite(type, protocol, address, data, statue, workSheet, sql);
+                                                        }
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "实时数据解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                }
+
+                                                break;
+                                            case 0x0010:
+                                                ResFunctionData.Text = "常规数据（仪表基本参数）";
+                                                if ((txt.Length + 1) / 3 == 96 ||
+                                                    (txt.Length + 1) / 3 == 78)
+                                                {
+                                                    // 无线仪表数据段
+                                                    // 仪表型号
+                                                    try
+                                                    {
+                                                        ResModel.Text = FrameContent.Substring(30, 23);
+                                                        ResModelDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "仪表型号解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 系列号
+                                                    try
+                                                    {
+                                                        ResFirmwareVersion.Text = FrameContent.Substring(54, 47);
+                                                        ResFirmwareVersionDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "系列号解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 固件版本
+                                                    try
+                                                    {
+                                                        ResFirmwareVersion.Text = FrameContent.Substring(102, 5);
+                                                        ResFirmwareVersionDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "固件版本解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 软件版本
+                                                    try
+                                                    {
+                                                        ResSoftwareVersion.Text = FrameContent.Substring(108, 5);
+                                                        ResSoftwareVersionDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "软件版本解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 量程下限
+                                                    try
+                                                    {
+                                                        ResLowRange.Text = FrameContent.Substring(114, 5);
+                                                        ResLowRangeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "量程下限解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 量程上限
+                                                    try
+                                                    {
+                                                        ResHighRange.Text = FrameContent.Substring(120, 5);
+                                                        ResHighRangeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "量程上限解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 测量精度
+                                                    try
+                                                    {
+                                                        ResMeasurementAccuracy.Text = FrameContent.Substring(126, 5);
+                                                        ResMeasurementAccuracyDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "测量精度解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 防护等级
+                                                    try
+                                                    {
+                                                        ResProtectionLevel.Text = FrameContent.Substring(132, 23);
+                                                        ResProtectionLevelDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "防护等级解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 防爆等级
+                                                    try
+                                                    {
+                                                        ResExplosionProofGrade.Text = FrameContent.Substring(156, 35);
+                                                        ResExplosionProofGradeDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "防爆等级解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+
+                                                    // 说明
+                                                    try
+                                                    {
+                                                        ResIllustrate.Text = FrameContent.Substring(191, 29);
+                                                        ResIllustrateDockPanel.Visibility = Visibility.Visible;
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        var str = ex.StackTrace;
+                                                        Console.WriteLine(str);
+                                                        // 异常时显示提示文字
+                                                        StatusTextBlock.Text = "说明解析出错！";
+                                                        TurnOnButton.IsChecked = false;
+                                                        return;
+                                                    }
+                                                }
+
+                                                break;
+                                            case 0x0020:
+                                                ResFunctionData.Text = "读数据命令";
+                                                break;
+                                            case 0x0100:
+                                                ResFunctionData.Text = "控制器参数写应答（控制器应答命令）";
+                                                break;
+                                            case 0x0101:
+                                                ResFunctionData.Text = "控制器读仪表参数应答（控制器应答命令）";
+                                                break;
+                                            case 0x0200:
+                                                ResFunctionData.Text = "控制器应答一体化载荷位移示功仪功图参数应答（控制器应答命令触发功图采集）";
+                                                break;
+                                            case 0x0201:
+                                                ResFunctionData.Text = "控制器应答功图数据命令";
+                                                break;
+                                            case 0x0202:
+                                                ResFunctionData.Text = "控制器读功图数据应答（控制器应答命令读已有功图）";
+                                                break;
+                                            case 0x0300:
+                                                ResFunctionData.Text = "控制器(RTU)对仪表控制命令";
+                                                break;
+                                            default:
+                                                ResType.Clear();
+                                                break;
+                                        }
+
+                                        while (ResType.Text.Trim() == string.Empty)
+                                            if (intFrameContentFunctionData >= 0x400 &&
+                                                intFrameContentFunctionData <= 0x47f)
+                                            {
+                                                ResFunctionData.Text = "配置协议命令";
+                                            }
+                                            else if (intFrameContentFunctionData >= 0x480 &&
+                                                     intFrameContentFunctionData <= 0x5ff)
+                                            {
+                                                ResFunctionData.Text = "标定协议命令";
+                                            }
+                                            else if (intFrameContentFunctionData >= 0x1000 &&
+                                                     intFrameContentFunctionData <= 0x2000)
+                                            {
+                                                ResFunctionData.Text = "厂家自定义数据类型";
+                                            }
+                                            else if (intFrameContentFunctionData >= 0x8000 &&
+                                                     intFrameContentFunctionData <= 0xffff)
+                                            {
+                                                ResFunctionData.Text = "预留";
+                                            }
+                                            else
+                                            {
+                                                ResFunctionData.Text = "未定义";
+                                                ResFunctionData.Foreground = new SolidColorBrush(Colors.Red);
+                                                break;
+                                            }
+
+                                        ResFunctionDataDockPanel.Visibility = Visibility.Visible;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        var str = ex.StackTrace;
+                                        Console.WriteLine(str);
+                                        // 异常时显示提示文字
+                                        StatusTextBlock.Text = "数据类型解析出错！";
+                                        TurnOnButton.IsChecked = false;
+                                        return;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                ResCyclicRedundancyCheck.Text = "未通过";
+                                ResCyclicRedundancyCheck.Foreground = new SolidColorBrush(Colors.Red);
+                            }
+
+                            ResCyclicRedundancyCheckDockPanel.Visibility = Visibility.Visible;
+                        }
                         break;
                     default:
                         ResProtocol.Text = "未知";
@@ -1958,7 +2113,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 清空发送缓冲区
             try
             {
-                serialPort.DiscardOutBuffer();
+                NewSerialPort.DiscardOutBuffer();
             }
             catch (Exception ex)
             {
@@ -1966,7 +2121,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 Console.WriteLine(std);
             }
 
-            if (!serialPort.IsOpen)
+            if (!NewSerialPort.IsOpen)
             {
                 StatusTextBlock.Text = "请先打开串口！";
                 return;
@@ -1994,7 +2149,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     {
                         var std = ex.StackTrace;
                         Console.WriteLine(std);
-                        serialPort.DiscardOutBuffer();
+                        NewSerialPort.DiscardOutBuffer();
                         MessageBox.Show("字节越界，请逐个字节输入！", "Error");
                         AutoSendCheckBox.IsChecked = false; // 关闭自动发送
                     }
@@ -2006,7 +2161,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 //Console.WriteLine("");
                 try
                 {
-                    serialPort.Write(sendBuffer, 0, sendBuffer.Length);
+                    NewSerialPort.Write(sendBuffer, 0, sendBuffer.Length);
                 }
                 catch (Exception ex)
                 {
@@ -2016,8 +2171,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                 }
 
                 // 更新发送数据计数
-                sendBytesCount += (uint) sendBuffer.Length;
-                StatusSendByteTextBlock.Text = sendBytesCount.ToString();
+                SendBytesCount += (uint)sendBuffer.Length;
+                StatusSendByteTextBlock.Text = SendBytesCount.ToString();
             }
             catch (Exception ex)
             {
@@ -2033,8 +2188,8 @@ namespace PDS800_WirelessTransmitter_Calibration
             //sendCount++;
             //Console.WriteLine("发送" + sendCount + "次");
             // 清空发送缓冲区
-            serialPort.DiscardOutBuffer();
-            if (!serialPort.IsOpen)
+            NewSerialPort.DiscardOutBuffer();
+            if (!NewSerialPort.IsOpen)
             {
                 StatusTextBlock.Text = "请先打开串口！";
                 return;
@@ -2062,7 +2217,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     {
                         var std = ex.StackTrace;
                         Console.WriteLine(std);
-                        serialPort.DiscardOutBuffer();
+                        NewSerialPort.DiscardOutBuffer();
                         MessageBox.Show("字节越界，请逐个字节输入！", "Error");
                         AutoSendCheckBox.IsChecked = false; // 关闭自动发送
                     }
@@ -2074,7 +2229,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 //Console.WriteLine("");
                 try
                 {
-                    serialPort.Write(sendBuffer, 0, sendBuffer.Length);
+                    NewSerialPort.Write(sendBuffer, 0, sendBuffer.Length);
                 }
                 catch (Exception ex)
                 {
@@ -2084,8 +2239,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                 }
 
                 // 更新发送数据计数
-                sendBytesCount += (uint) sendBuffer.Length;
-                StatusSendByteTextBlock.Text = sendBytesCount.ToString();
+                SendBytesCount += (uint)sendBuffer.Length;
+                StatusSendByteTextBlock.Text = SendBytesCount.ToString();
             }
             catch (Exception ex)
             {
@@ -2125,7 +2280,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="e"></param>
         private void AutoSendCheckBox_Checked(object sender, RoutedEventArgs e)
         {
-            autoSendTimer.Start();
+            AutoSendTimer.Start();
         }
 
         /// <summary>
@@ -2135,7 +2290,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="e"></param>
         private void AutoSendTimer_Tick(object sender, EventArgs e)
         {
-            autoSendTimer.Interval = new TimeSpan(0, 0, 0, 0, Convert.ToInt32(AutoSendCycleTextBox.Text));
+            AutoSendTimer.Interval = new TimeSpan(0, 0, 0, 0, Convert.ToInt32(AutoSendCycleTextBox.Text));
             // 发送数据
             SerialPortSend();
             // 设置新的定时时间           
@@ -2149,7 +2304,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="e"></param>
         private void AutoSendCheckBox_Unchecked(object sender, RoutedEventArgs e)
         {
-            autoSendTimer.Stop();
+            AutoSendTimer.Stop();
         }
 
         /// <summary>
@@ -2170,11 +2325,11 @@ namespace PDS800_WirelessTransmitter_Calibration
         private void CountClearButton_Click(object sender, RoutedEventArgs e)
         {
             // 接收、发送计数清零
-            receiveBytesCount = 0;
-            sendBytesCount = 0;
+            ReceiveBytesCount = 0;
+            SendBytesCount = 0;
             // 更新数据显示
-            StatusReceiveByteTextBlock.Text = receiveBytesCount.ToString();
-            StatusSendByteTextBlock.Text = sendBytesCount.ToString();
+            StatusReceiveByteTextBlock.Text = ReceiveBytesCount.ToString();
+            StatusSendByteTextBlock.Text = SendBytesCount.ToString();
         }
 
         #endregion
@@ -2251,101 +2406,101 @@ namespace PDS800_WirelessTransmitter_Calibration
             try
             {
                 var str = "";
-                switch (frameHeader)
+                switch (FrameHeader)
                 {
                     case "FE":
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
-                            out var strProtocolVendor, out var strHandler, out var strGroup);
-                        // 功能码 / 数据类型
-                        var strFunctionData = "01 00";
-                        // 写操作数据区
-                        string strHandlerContent;
-                        if (RegularDataUpdateRate.Text != "")
-                            strHandlerContent = Convert.ToString(Convert.ToInt32(RegularDataUpdateRate.Text), 16)
-                                .ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        else if (ResSleepTime.Text != "")
-                            strHandlerContent = frameContent.Substring(36, 5);
-                        else
-                            strHandlerContent = "00 00";
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 功能码 / 数据类型
+                            var strFunctionData = "01 00";
+                            // 写操作数据区
+                            string strHandlerContent;
+                            if (RegularDataUpdateRate.Text != "")
+                                strHandlerContent = Convert.ToString(Convert.ToInt32(RegularDataUpdateRate.Text), 16)
+                                    .ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            else if (ResSleepTime.Text != "")
+                                strHandlerContent = FrameContent.Substring(36, 5);
+                            else
+                                strHandlerContent = "00 00";
 
-                        // 合成数据域
-                        var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup +
-                                         " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（不包含命令域）
-                        var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-                        var strInner = strLength + " " + strCommand + " " + strContent;
-                        // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
-                        // 合成返回值
-                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                    }
+                            // 合成数据域
+                            var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup +
+                                             " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（不包含命令域）
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                            var strInner = strLength + " " + strCommand + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
                         break;
                     case "7E":
-                    {
-                        if (isLoRaFlag)
                         {
-                            // 获取所需解析数据
-                            ParameterAcquisition_7E(out var strHeader, out _, out _,
-                                out var strProtocolVendor, out var strHandler, out var strGroup);
-                            // 功能码 / 数据类型
-                            var strFunctionData = "01 00";
-                            // 写操作数据区
-                            string strHandlerContent;
-                            if (RegularDataUpdateRate.Text != "")
-                                strHandlerContent = Convert.ToString(Convert.ToInt32(RegularDataUpdateRate.Text), 16)
-                                    .ToUpper().PadLeft(4, '0').Insert(2, " ");
-                            else if (ResSleepTime.Text != "")
-                                strHandlerContent = frameContent.Substring(36, 5);
-                            else
-                                strHandlerContent = "00 00";
+                            if (IsLoRaFlag)
+                            {
+                                // 获取所需解析数据
+                                ParameterAcquisition_7E(out var strHeader, out _, out _,
+                                    out var strProtocolVendor, out var strHandler, out var strGroup);
+                                // 功能码 / 数据类型
+                                var strFunctionData = "01 00";
+                                // 写操作数据区
+                                string strHandlerContent;
+                                if (RegularDataUpdateRate.Text != "")
+                                    strHandlerContent = Convert.ToString(Convert.ToInt32(RegularDataUpdateRate.Text), 16)
+                                        .ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                else if (ResSleepTime.Text != "")
+                                    strHandlerContent = FrameContent.Substring(36, 5);
+                                else
+                                    strHandlerContent = "00 00";
 
-                            // 合成数据域
-                            var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                             strFunctionData + " " + strHandlerContent;
-                            // 计算长度域（包含命令域）
-                            var intLength = (strContent.Length + 1) / 3;
-                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                            var strInner = strLength + " " + strContent;
-                            // 计算异或校验码
-                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                            // 合成返回值
-                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                        }
-                        else
-                        {
-                            // 获取所需解析数据
-                            ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
-                                out var strProtocolVendor, out var strHandler, out var strGroup);
-                            // 功能码 / 数据类型
-                            var strFunctionData = "01 00";
-                            // 写操作数据区
-                            string strHandlerContent;
-                            if (RegularDataUpdateRate.Text != "")
-                                strHandlerContent = Convert.ToString(Convert.ToInt32(RegularDataUpdateRate.Text), 16)
-                                    .ToUpper().PadLeft(4, '0').Insert(2, " ");
-                            else if (ResSleepTime.Text != "")
-                                strHandlerContent = frameContent.Substring(36, 5);
+                                // 合成数据域
+                                var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                                 strFunctionData + " " + strHandlerContent;
+                                // 计算长度域（包含命令域）
+                                var intLength = (strContent.Length + 1) / 3;
+                                var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                var strInner = strLength + " " + strContent;
+                                // 计算异或校验码
+                                var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                                // 合成返回值
+                                str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                            }
                             else
-                                strHandlerContent = "00 00";
+                            {
+                                // 获取所需解析数据
+                                ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
+                                    out var strProtocolVendor, out var strHandler, out var strGroup);
+                                // 功能码 / 数据类型
+                                var strFunctionData = "01 00";
+                                // 写操作数据区
+                                string strHandlerContent;
+                                if (RegularDataUpdateRate.Text != "")
+                                    strHandlerContent = Convert.ToString(Convert.ToInt32(RegularDataUpdateRate.Text), 16)
+                                        .ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                else if (ResSleepTime.Text != "")
+                                    strHandlerContent = FrameContent.Substring(36, 5);
+                                else
+                                    strHandlerContent = "00 00";
 
-                            // 合成数据域
-                            var strContent = strCommand + " " + strAddress + " " +
-                                             frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " +
-                                             strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                             strFunctionData + " " + strHandlerContent;
-                            // 计算长度域（包含命令域）
-                            var intLength = (strContent.Length + 1) / 3;
-                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                            var strInner = strLength + " " + strContent;
-                            // 计算异或校验码
-                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                            // 合成返回值
-                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                                // 合成数据域
+                                var strContent = strCommand + " " + strAddress + " " +
+                                                 FrameUnparsed.Remove(FrameUnparsed.Length - 3, 3) + " 00 00 " +
+                                                 strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                                 strFunctionData + " " + strHandlerContent;
+                                // 计算长度域（包含命令域）
+                                var intLength = (strContent.Length + 1) / 3;
+                                var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                var strInner = strLength + " " + strContent;
+                                // 计算异或校验码
+                                var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                                // 合成返回值
+                                str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                            }
                         }
-                    }
                         break;
                 }
 
@@ -2368,77 +2523,77 @@ namespace PDS800_WirelessTransmitter_Calibration
             try
             {
                 var str = "";
-                switch (frameHeader)
+                switch (FrameHeader)
                 {
                     case "FE":
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
-                            out var strProtocolVendor, out var strHandler, out var strGroup);
-                        // 写操作数据区
-                        // 功能码 / 数据类型
-                        var strFunctionData = "01 01";
-                        var strHandlerContent = "";
-                        // 合成数据域
-                        var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup +
-                                         " " + strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（不包含命令域）
-                        var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-                        var strInner = strLength + " " + strCommand + " " + strContent;
-                        // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
-                        // 合成返回值
-                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                    }
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            var strFunctionData = "01 01";
+                            var strHandlerContent = "";
+                            // 合成数据域
+                            var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup +
+                                             " " + strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（不包含命令域）
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                            var strInner = strLength + " " + strCommand + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
                         break;
                     case "7E":
-                    {
-                        if (isLoRaFlag)
                         {
-                            // 获取所需解析数据
-                            ParameterAcquisition_7E(out var strHeader, out _, out _,
-                                out var strProtocolVendor, out var strHandler, out var strGroup);
-                            // 写操作数据区
-                            // 功能码 / 数据类型
-                            var strFunctionData = "01 01";
-                            var strHandlerContent = "";
-                            // 合成数据域
-                            var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                             strFunctionData + " " + strHandlerContent;
-                            // 计算长度域（包含命令域）
-                            var intLength = (strContent.Length + 1) / 3;
-                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                            var strInner = strLength + " " + strContent;
-                            // 计算异或校验码
-                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                            // 合成返回值
-                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                            if (IsLoRaFlag)
+                            {
+                                // 获取所需解析数据
+                                ParameterAcquisition_7E(out var strHeader, out _, out _,
+                                    out var strProtocolVendor, out var strHandler, out var strGroup);
+                                // 写操作数据区
+                                // 功能码 / 数据类型
+                                var strFunctionData = "01 01";
+                                var strHandlerContent = "";
+                                // 合成数据域
+                                var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                                 strFunctionData + " " + strHandlerContent;
+                                // 计算长度域（包含命令域）
+                                var intLength = (strContent.Length + 1) / 3;
+                                var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                var strInner = strLength + " " + strContent;
+                                // 计算异或校验码
+                                var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                                // 合成返回值
+                                str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                            }
+                            else
+                            {
+                                // 获取所需解析数据
+                                ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
+                                    out var strProtocolVendor, out var strHandler, out var strGroup);
+                                // 写操作数据区
+                                // 功能码 / 数据类型
+                                var strFunctionData = "01 01";
+                                var strHandlerContent = "";
+                                // 合成数据域
+                                var strContent = strCommand + " " + strAddress + " " +
+                                                 FrameUnparsed.Remove(FrameUnparsed.Length - 3, 3) + " 00 00 " +
+                                                 strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                                 strFunctionData + " " + strHandlerContent;
+                                // 计算长度域（包含命令域）
+                                var intLength = (strContent.Length + 1) / 3;
+                                var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                                var strInner = strLength + " " + strContent;
+                                // 计算异或校验码
+                                var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                                // 合成返回值
+                                str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                            }
                         }
-                        else
-                        {
-                            // 获取所需解析数据
-                            ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
-                                out var strProtocolVendor, out var strHandler, out var strGroup);
-                            // 写操作数据区
-                            // 功能码 / 数据类型
-                            var strFunctionData = "01 01";
-                            var strHandlerContent = "";
-                            // 合成数据域
-                            var strContent = strCommand + " " + strAddress + " " +
-                                             frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " +
-                                             strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                             strFunctionData + " " + strHandlerContent;
-                            // 计算长度域（包含命令域）
-                            var intLength = (strContent.Length + 1) / 3;
-                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                            var strInner = strLength + " " + strContent;
-                            // 计算异或校验码
-                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                            // 合成返回值
-                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                        }
-                    }
                         break;
                 }
 
@@ -2475,7 +2630,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     if (true)
                     {
                         ConnectionStatusEllipse.Fill = Brushes.Yellow;
-                        connectFlag = true;
+                        ConnectFlag = true;
                     }
 
                     EstablishConnectionButton.Content = "关闭连接";
@@ -2493,7 +2648,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 指示灯变灰
                     EstablishConnectionButton.IsEnabled = true;
                     EstablishConnectionButton.Content = "建立连接";
-                    connectFlag = false;
+                    ConnectFlag = false;
                     ConnectionStatusEllipse.Fill = Brushes.Gray;
                 }
             }
@@ -2511,77 +2666,77 @@ namespace PDS800_WirelessTransmitter_Calibration
         private string EstablishBuild_Text()
         {
             var str = "";
-            switch (frameHeader)
+            switch (FrameHeader)
             {
                 case "FE":
-                {
-                    // 获取所需解析数据
-                    ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
-                        out var strProtocolVendor, out var strHandler, out var strGroup);
-                    // 写操作数据区
-                    // 功能码 / 数据类型
-                    var strFunctionData = "00 80";
-                    var strHandlerContent = "F0";
-                    // 合成数据域
-                    var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                     strFunctionData + " " + strHandlerContent;
-                    // 计算长度域（不包含命令域）
-                    var intLength = (strContent.Length + 1) / 3;
-                    var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-                    var strInner = strLength + " " + strCommand + " " + strContent;
-                    // 计算异或校验码
-                    var strCyclicRedundancyCheck = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
-                    // 合成返回值
-                    str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                }
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
+                            out var strProtocolVendor, out var strHandler, out var strGroup);
+                        // 写操作数据区
+                        // 功能码 / 数据类型
+                        var strFunctionData = "00 80";
+                        var strHandlerContent = "F0";
+                        // 合成数据域
+                        var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                         strFunctionData + " " + strHandlerContent;
+                        // 计算长度域（不包含命令域）
+                        var intLength = (strContent.Length + 1) / 3;
+                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        var strInner = strLength + " " + strCommand + " " + strContent;
+                        // 计算异或校验码
+                        var strCyclicRedundancyCheck = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
+                        // 合成返回值
+                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                    }
                     break;
                 case "7E":
-                {
-                    if (isLoRaFlag)
                     {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out var strHeader, out _, out _,
-                            out var strProtocolVendor, out var strHandler, out var strGroup);
-                        // 写操作数据区
-                        // 功能码 / 数据类型
-                        var strFunctionData = "00 80";
-                        var strHandlerContent = "F0";
-                        // 合成数据域
-                        var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                         strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        var strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                        // 合成返回值
-                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        if (IsLoRaFlag)
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out var strHeader, out _, out _,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            var strFunctionData = "00 80";
+                            var strHandlerContent = "F0";
+                            // 合成数据域
+                            var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                             strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            var strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
+                        else
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            var strFunctionData = "00 80";
+                            var strHandlerContent = "F0";
+                            // 合成数据域
+                            var strContent = strCommand + " " + strAddress + " " +
+                                             FrameUnparsed.Remove(FrameUnparsed.Length - 3, 3) + " 00 00 " +
+                                             strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                             strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            var strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
                     }
-                    else
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
-                            out var strProtocolVendor, out var strHandler, out var strGroup);
-                        // 写操作数据区
-                        // 功能码 / 数据类型
-                        var strFunctionData = "00 80";
-                        var strHandlerContent = "F0";
-                        // 合成数据域
-                        var strContent = strCommand + " " + strAddress + " " +
-                                         frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " +
-                                         strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                         strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        var strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                        // 合成返回值
-                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                    }
-                }
                     break;
             }
 
@@ -2607,7 +2762,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // serialPort.Write(EstablishBuild_Text());
                     // 指示灯变灰
                     EstablishConnectionButton.Content = "建立连接";
-                    connectFlag = false;
+                    ConnectFlag = false;
                     ConnectionStatusEllipse.Fill = Brushes.Gray;
                     // 更新率不锁定
                     RegularDataUpdateRate.IsEnabled = true;
@@ -2635,77 +2790,77 @@ namespace PDS800_WirelessTransmitter_Calibration
         private string EstablishDisconnect_Text()
         {
             var str = "";
-            switch (frameHeader)
+            switch (FrameHeader)
             {
                 case "FE":
-                {
-                    // 获取所需解析数据
-                    ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
-                        out var strProtocolVendor, out var strHandler, out var strGroup);
-                    // 写操作数据区
-                    // 功能码 / 数据类型
-                    var strFunctionData = "00 80";
-                    var strHandlerContent = "FF";
-                    // 合成数据域
-                    var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                     strFunctionData + " " + strHandlerContent;
-                    // 计算长度域（不包含命令域）
-                    var intLength = (strContent.Length + 1) / 3;
-                    var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-                    var strInner = strLength + " " + strCommand + " " + strContent;
-                    // 计算异或校验码
-                    var strCyclicRedundancyCheck = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
-                    // 合成返回值
-                    str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                }
+                    {
+                        // 获取所需解析数据
+                        ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
+                            out var strProtocolVendor, out var strHandler, out var strGroup);
+                        // 写操作数据区
+                        // 功能码 / 数据类型
+                        var strFunctionData = "00 80";
+                        var strHandlerContent = "FF";
+                        // 合成数据域
+                        var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                         strFunctionData + " " + strHandlerContent;
+                        // 计算长度域（不包含命令域）
+                        var intLength = (strContent.Length + 1) / 3;
+                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        var strInner = strLength + " " + strCommand + " " + strContent;
+                        // 计算异或校验码
+                        var strCyclicRedundancyCheck = CalCheckCode_FE(CleanHexString("00 " + strInner + " 00"));
+                        // 合成返回值
+                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                    }
                     break;
                 case "7E":
-                {
-                    if (isLoRaFlag)
                     {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out var strHeader, out _, out _,
-                            out var strProtocolVendor, out var strHandler, out var strGroup);
-                        // 写操作数据区
-                        // 功能码 / 数据类型
-                        var strFunctionData = "00 80";
-                        var strHandlerContent = "FF";
-                        // 合成数据域
-                        var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                         strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        var strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                        // 合成返回值
-                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        if (IsLoRaFlag)
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out var strHeader, out _, out _,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            var strFunctionData = "00 80";
+                            var strHandlerContent = "FF";
+                            // 合成数据域
+                            var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                             strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            var strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
+                        else
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 写操作数据区
+                            // 功能码 / 数据类型
+                            var strFunctionData = "00 80";
+                            var strHandlerContent = "FF";
+                            // 合成数据域
+                            var strContent = strCommand + " " + strAddress + " " +
+                                             FrameUnparsed.Remove(FrameUnparsed.Length - 3, 3) + " 00 00 " +
+                                             strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                             strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            var strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
                     }
-                    else
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
-                            out var strProtocolVendor, out var strHandler, out var strGroup);
-                        // 写操作数据区
-                        // 功能码 / 数据类型
-                        var strFunctionData = "00 80";
-                        var strHandlerContent = "FF";
-                        // 合成数据域
-                        var strContent = strCommand + " " + strAddress + " " +
-                                         frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " +
-                                         strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                         strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        var strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                        // 合成返回值
-                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                    }
-                }
                     break;
             }
 
@@ -2751,41 +2906,12 @@ namespace PDS800_WirelessTransmitter_Calibration
         private string DescribeCalibration_Text()
         {
             var str = "";
-            switch (frameHeader)
+            switch (FrameHeader)
             {
                 case "FE":
-                {
-                    // 获取所需解析数据
-                    ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
-                        out var strProtocolVendor, out var strHandler, out var strGroup);
-                    // 获取设备描述标定信息
-                    // 功能码 / 数据类型
-                    var strFunctionData = "00 80";
-                    // 写操作数据区
-                    var strHandlerContent = "F1 " + CalibrationInstrumentModelTextBox.Text.Trim() + " " +
-                                            CalibrationSerialNumberTextBox.Text.Trim() + " " +
-                                            CalibrationIpRatingTextBox.Text.Trim() + " " +
-                                            CalibrationExplosionProofLevelTextBox.Text.Trim() + " " +
-                                            CalibrationInstructionsTextBox.Text.Trim();
-                    // 合成数据域
-                    var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                     strFunctionData + " " + strHandlerContent;
-                    // 计算长度域
-                    var intLength = (strContent.Length + 1) / 3;
-                    var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-                    var strInner = strLength + " " + strCommand + " " + strContent;
-                    // 计算异或校验码
-                    var strCyclicRedundancyCheck = HexCyclicRedundancyCheck(CleanHexString(strInner));
-                    // 合成返回值
-                    str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                }
-                    break;
-                case "7E":
-                {
-                    if (isLoRaFlag)
                     {
                         // 获取所需解析数据
-                        ParameterAcquisition_7E(out var strHeader, out _, out _,
+                        ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
                             out var strProtocolVendor, out var strHandler, out var strGroup);
                         // 获取设备描述标定信息
                         // 功能码 / 数据类型
@@ -2797,46 +2923,75 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                 CalibrationExplosionProofLevelTextBox.Text.Trim() + " " +
                                                 CalibrationInstructionsTextBox.Text.Trim();
                         // 合成数据域
-                        var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                         strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        var strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                        // 合成返回值
-                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                    }
-                    else
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
-                            out var strProtocolVendor, out var strHandler, out var strGroup);
-                        // 获取设备描述标定信息
-                        // 功能码 / 数据类型
-                        var strFunctionData = "00 80";
-                        // 写操作数据区
-                        var strHandlerContent = "F1 " + CalibrationInstrumentModelTextBox.Text.Trim() + " " +
-                                                CalibrationSerialNumberTextBox.Text.Trim() + " " +
-                                                CalibrationIpRatingTextBox.Text.Trim() + " " +
-                                                CalibrationExplosionProofLevelTextBox.Text.Trim() + " " +
-                                                CalibrationInstructionsTextBox.Text.Trim();
-                        // 合成数据域
-                        var strContent = strCommand + " " + strAddress + " " +
-                                         frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " +
-                                         strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                        var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " +
                                          strFunctionData + " " + strHandlerContent;
                         // 计算长度域
                         var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        var strInner = strLength + " " + strContent;
+                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        var strInner = strLength + " " + strCommand + " " + strContent;
                         // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                        var strCyclicRedundancyCheck = HexCyclicRedundancyCheck(CleanHexString(strInner));
                         // 合成返回值
                         str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
                     }
-                }
+                    break;
+                case "7E":
+                    {
+                        if (IsLoRaFlag)
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out var strHeader, out _, out _,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 获取设备描述标定信息
+                            // 功能码 / 数据类型
+                            var strFunctionData = "00 80";
+                            // 写操作数据区
+                            var strHandlerContent = "F1 " + CalibrationInstrumentModelTextBox.Text.Trim() + " " +
+                                                    CalibrationSerialNumberTextBox.Text.Trim() + " " +
+                                                    CalibrationIpRatingTextBox.Text.Trim() + " " +
+                                                    CalibrationExplosionProofLevelTextBox.Text.Trim() + " " +
+                                                    CalibrationInstructionsTextBox.Text.Trim();
+                            // 合成数据域
+                            var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                             strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            var strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
+                        else
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 获取设备描述标定信息
+                            // 功能码 / 数据类型
+                            var strFunctionData = "00 80";
+                            // 写操作数据区
+                            var strHandlerContent = "F1 " + CalibrationInstrumentModelTextBox.Text.Trim() + " " +
+                                                    CalibrationSerialNumberTextBox.Text.Trim() + " " +
+                                                    CalibrationIpRatingTextBox.Text.Trim() + " " +
+                                                    CalibrationExplosionProofLevelTextBox.Text.Trim() + " " +
+                                                    CalibrationInstructionsTextBox.Text.Trim();
+                            // 合成数据域
+                            var strContent = strCommand + " " + strAddress + " " +
+                                             FrameUnparsed.Remove(FrameUnparsed.Length - 3, 3) + " 00 00 " +
+                                             strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                             strFunctionData + " " + strHandlerContent;
+                            // 计算长度域
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            var strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
+                    }
                     break;
             }
 
@@ -2880,40 +3035,12 @@ namespace PDS800_WirelessTransmitter_Calibration
         private string ParameterCalibration_Text()
         {
             var str = "";
-            switch (frameHeader)
+            switch (FrameHeader)
             {
                 case "FE":
-                {
-                    // 获取所需解析数据
-                    ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
-                        out var strProtocolVendor, out var strHandler, out var strGroup);
-                    // 获取设备描述标定信息
-                    // 功能码 / 数据类型
-                    var strFunctionData = "00 80";
-                    // 标定数据
-                    var calibrationParameters = FloatStrToHexStr(CalibrationParametersContentTextBox.Text);
-                    // 写操作数据区
-                    var strHandlerContent = "F2 " + CalibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " +
-                                            CalibrationUnitTextBox.Text.Trim() + " " + calibrationParameters;
-                    // 合成数据域
-                    var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                     strFunctionData + " " + strHandlerContent;
-                    // 计算长度域
-                    var intLength = (strContent.Length + 1) / 3;
-                    var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
-                    var strInner = strLength + " " + strCommand + " " + strContent;
-                    // 计算异或校验码
-                    var strCyclicRedundancyCheck = HexCyclicRedundancyCheck(CleanHexString(strInner));
-                    // 合成返回值
-                    str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                }
-                    break;
-                case "7E":
-                {
-                    if (isLoRaFlag)
                     {
                         // 获取所需解析数据
-                        ParameterAcquisition_7E(out var strHeader, out _, out _,
+                        ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
                             out var strProtocolVendor, out var strHandler, out var strGroup);
                         // 获取设备描述标定信息
                         // 功能码 / 数据类型
@@ -2921,50 +3048,78 @@ namespace PDS800_WirelessTransmitter_Calibration
                         // 标定数据
                         var calibrationParameters = FloatStrToHexStr(CalibrationParametersContentTextBox.Text);
                         // 写操作数据区
-                        var strHandlerContent = "F2 " + CalibrationParametersComboBox.Text.Substring(2, 2).Trim() +
-                                                " " + CalibrationUnitTextBox.Text.Trim() + " " +
-                                                calibrationParameters;
+                        var strHandlerContent = "F2 " + CalibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " +
+                                                CalibrationUnitTextBox.Text.Trim() + " " + calibrationParameters;
                         // 合成数据域
-                        var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
-                                         strFunctionData + " " + strHandlerContent;
-                        // 计算长度域（包含命令域）
-                        var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        var strInner = strLength + " " + strContent;
-                        // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
-                        // 合成返回值
-                        str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
-                    }
-                    else
-                    {
-                        // 获取所需解析数据
-                        ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
-                            out var strProtocolVendor, out var strHandler, out var strGroup);
-                        // 获取设备描述标定信息
-                        // 功能码 / 数据类型
-                        var strFunctionData = "00 80";
-                        // 标定数据
-                        var calibrationParameters = FloatStrToHexStr(CalibrationParametersContentTextBox.Text);
-                        // 写操作数据区
-                        var strHandlerContent = "F2 " + CalibrationParametersComboBox.Text.Substring(2, 2).Trim() +
-                                                " " + CalibrationUnitTextBox.Text.Trim() + " " +
-                                                calibrationParameters;
-                        // 合成数据域
-                        var strContent = strCommand + " " + strAddress + " " +
-                                         frameUnparsed.Remove(frameUnparsed.Length - 3, 3) + " 00 00 " +
-                                         strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                        var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " +
                                          strFunctionData + " " + strHandlerContent;
                         // 计算长度域
                         var intLength = (strContent.Length + 1) / 3;
-                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
-                        var strInner = strLength + " " + strContent;
+                        var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(2, '0');
+                        var strInner = strLength + " " + strCommand + " " + strContent;
                         // 计算异或校验码
-                        var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                        var strCyclicRedundancyCheck = HexCyclicRedundancyCheck(CleanHexString(strInner));
                         // 合成返回值
                         str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
                     }
-                }
+                    break;
+                case "7E":
+                    {
+                        if (IsLoRaFlag)
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out var strHeader, out _, out _,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 获取设备描述标定信息
+                            // 功能码 / 数据类型
+                            var strFunctionData = "00 80";
+                            // 标定数据
+                            var calibrationParameters = FloatStrToHexStr(CalibrationParametersContentTextBox.Text);
+                            // 写操作数据区
+                            var strHandlerContent = "F2 " + CalibrationParametersComboBox.Text.Substring(2, 2).Trim() +
+                                                    " " + CalibrationUnitTextBox.Text.Trim() + " " +
+                                                    calibrationParameters;
+                            // 合成数据域
+                            var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                             strFunctionData + " " + strHandlerContent;
+                            // 计算长度域（包含命令域）
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            var strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
+                        else
+                        {
+                            // 获取所需解析数据
+                            ParameterAcquisition_7E(out var strHeader, out var strCommand, out var strAddress,
+                                out var strProtocolVendor, out var strHandler, out var strGroup);
+                            // 获取设备描述标定信息
+                            // 功能码 / 数据类型
+                            var strFunctionData = "00 80";
+                            // 标定数据
+                            var calibrationParameters = FloatStrToHexStr(CalibrationParametersContentTextBox.Text);
+                            // 写操作数据区
+                            var strHandlerContent = "F2 " + CalibrationParametersComboBox.Text.Substring(2, 2).Trim() +
+                                                    " " + CalibrationUnitTextBox.Text.Trim() + " " +
+                                                    calibrationParameters;
+                            // 合成数据域
+                            var strContent = strCommand + " " + strAddress + " " +
+                                             FrameUnparsed.Remove(FrameUnparsed.Length - 3, 3) + " 00 00 " +
+                                             strProtocolVendor + " " + strHandler + " " + strGroup + " " +
+                                             strFunctionData + " " + strHandlerContent;
+                            // 计算长度域
+                            var intLength = (strContent.Length + 1) / 3;
+                            var strLength = Convert.ToString(intLength, 16).ToUpper().PadLeft(4, '0').Insert(2, " ");
+                            var strInner = strLength + " " + strContent;
+                            // 计算异或校验码
+                            var strCyclicRedundancyCheck = CalCheckCode_7E(CleanHexString("00 " + strInner + " 00"));
+                            // 合成返回值
+                            str = CleanHexString(strHeader + " " + strInner + " " + strCyclicRedundancyCheck);
+                        }
+                    }
                     break;
             }
 
@@ -2990,13 +3145,13 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 发送命令域
             strCommand = "24 5F";
             // 发送地址
-            strAddress = frameAddress;
+            strAddress = FrameAddress;
             // 协议和厂商号为数据内容前四位
-            strProtocolVendor = frameContent.Substring(0, 11);
+            strProtocolVendor = FrameContent.Substring(0, 11);
             // 仪表类型：手操器
             strHandler = "1F 10";
             // 组号表号
-            strGroup = frameContent.Substring(18, 5);
+            strGroup = FrameContent.Substring(18, 5);
         }
 
         /// <summary>
@@ -3013,7 +3168,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         {
             // 帧头
             strHeader = "7E";
-            if (isLoRaFlag)
+            if (IsLoRaFlag)
             {
                 // 发送命令域
                 strCommand = "";
@@ -3025,15 +3180,15 @@ namespace PDS800_WirelessTransmitter_Calibration
                 // 发送命令域
                 strCommand = "11 00";
                 // 发送地址
-                strAddress = frameAddress;
+                strAddress = FrameAddress;
             }
 
             // 协议和厂商号
-            strProtocolVendor = frameContent.Substring(0, 11);
+            strProtocolVendor = FrameContent.Substring(0, 11);
             // 仪表类型：手操器
             strHandler = "1F 10";
             // 组号表号
-            strGroup = frameContent.Substring(18, 5);
+            strGroup = FrameContent.Substring(18, 5);
         }
 
         #endregion
@@ -3379,6 +3534,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         #endregion
 
+        #region 绘图方法
 
         /// <summary>
         ///     标定栏的数据预览
@@ -3464,18 +3620,18 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <summary>
         ///     画折线图
         /// </summary>
-        private ObservableDataSource<Point> dataSource = new ObservableDataSource<Point>();
+        public ObservableDataSource<Point> DataSource { get; private set; } = new ObservableDataSource<Point>();
 
-        private int plotPointX = 1;
-        private double plotPointY;
-        private bool connectFlag;
+        public int PlotPointX { get; private set; } = 1;
+        public double PlotPointY { get; private set; }
+        public bool ConnectFlag { get; private set; }
 
         private void AnimatedPlot()
         {
-            double x = plotPointX;
+            double x = PlotPointX;
             try
             {
-                plotPointY = realTimeData;
+                PlotPointY = RealTimeData;
             }
             catch (Exception ex)
             {
@@ -3483,25 +3639,16 @@ namespace PDS800_WirelessTransmitter_Calibration
                 Console.WriteLine(str);
             }
 
-            var point = new Point(x, plotPointY);
-            dataSource.AppendAsync(Dispatcher, point);
-            //if (plotPointX >= 5)
-            //{
-            //    plotter.Viewport.Visible = new Rect(plotPointX - 5, -1, 5, 24);
-            //}
-            //else
-            //{
-            //    plotter.Viewport.Visible = new Rect(0, -1, 5, 24);
-            //}
-            //plotter.Viewport.FitToView();
-            plotPointX++;
+            var point = new Point(x, PlotPointY);
+            DataSource.AppendAsync(Dispatcher, point);
+            PlotPointX++;
         }
 
 
         private void Plot_Loaded()
         {
             Plotter.AxisGrid.Visibility = Visibility.Hidden;
-            Plotter.AddLineGraph(dataSource, Colors.Blue, 2, "实时数据");
+            Plotter.AddLineGraph(DataSource, Colors.Blue, 2, "实时数据");
             Plotter.Viewport.Visible = new Rect(0, -1, 5, 24);
             Plotter.Viewport.FitToView();
         }
@@ -3519,5 +3666,172 @@ namespace PDS800_WirelessTransmitter_Calibration
                     }
             }
         }
+        #endregion
+
+        #region 数据库方法
+        #region 数据库操作字符串定义
+
+        #region 连接字符串
+
+        /// <summary>
+        ///     服务器连接字符串
+        /// </summary>
+        public static string ConnectString { get; set; }
+
+
+        /// <summary>
+        ///     服务器名称
+        /// </summary>
+        private static string SqlServer { get; set; }
+
+        /// <summary>
+        ///     身份验证类型
+        /// </summary>
+        private static string SqlIntegratedSecurity { get; set; }
+
+        /// <summary>
+        ///     数据库名称
+        /// </summary>
+        private static string SqlDatabase { get; set; }
+
+        /// <summary>
+        ///     工作表
+        /// </summary>
+        private static string WorkSheet { get; set; }
+
+        #endregion 连接字符串
+
+        #endregion 数据库操作字符串定义
+
+
+        #region 声明
+
+        /// <summary>
+        ///     标定用数据库连接
+        /// </summary>
+        public SqlConnection CalibrationSqlConnect { get; set; }
+
+
+        /// <summary>
+        ///     执行数据库命令
+        /// </summary>
+        /// <param name="command">需要执行的命令</param>
+        /// <param name="sql">执行命令的数据库连接对象</param>
+        private int ExecuteSqlCommand(string command, SqlConnection sql)
+        {
+            var returnValue = -1;
+            var cmd = new SqlCommand(command, sql);
+            try
+            {
+                returnValue = cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                var str = ex.StackTrace;
+                Console.WriteLine(str);
+                MessageBox.Show(ex.Message);
+            }
+            return returnValue;
+        }
+
+        #endregion
+
+        /// <summary>
+        ///     建立数据库连接
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void SqlConnectButton_Checked(object sender, RoutedEventArgs e)
+        {
+            var sqlSetting = new SqlSetting();
+            sqlSetting.ShowDialog();
+            SqlServer = sqlSetting.setSqlServer;
+            SqlIntegratedSecurity = sqlSetting.setSqlIntegratedSecurity;
+            SqlDatabase = sqlSetting.setSqlDatabase;
+            WorkSheet = sqlSetting.setWorkSheet;
+
+            ConnectString = $"Server={SqlServer}; Integrated security={SqlIntegratedSecurity}; database={SqlDatabase}";
+            CalibrationSqlConnect = new SqlConnection(ConnectString);
+
+
+            // 连接到数据库服务器
+            try
+            {
+                CalibrationSqlConnect.Open();
+                MessageBox.Show($"与服务器{SqlServer}建立连接：操作数据库为{SqlDatabase}。", "建立连接", MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                SqlConnectButton.Content = "断开数据库";
+                SqlConnectEllipse.Fill = Brushes.Green;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("建立连接失败：" + ex.Message, "建立连接", MessageBoxButton.OK,
+                    MessageBoxImage.Exclamation);
+                SqlConnectButton.IsChecked = false;
+                SqlConnectButton.Content = "连接数据库";
+                SqlConnectEllipse.Fill = Brushes.Gray;
+            }
+            string command = $"create table {WorkSheet} ( id int identity(1, 1) primary key, type varchar(MAX), protocol varchar(MAX), address varchar(MAX), data varchar(MAX), statue varchar(MAX))";
+            // 创建数据表（如果已经存在就不创建了）
+            ExecuteSqlCommand(command, CalibrationSqlConnect);
+        }
+
+        /// <summary>
+        ///     断开数据库连接
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void SqlConnectButton_Unchecked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                CalibrationSqlConnect.Close();
+                MessageBox.Show($"与服务器{SqlServer}断开连接：操作数据库为{SqlDatabase}。", "断开连接", MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                SqlConnectButton.Content = "连接数据库";
+                SqlConnectEllipse.Fill = Brushes.Gray;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("断开连接失败：" + ex.Message, "断开连接", MessageBoxButton.OK,
+                    MessageBoxImage.Exclamation);
+                SqlConnectButton.IsChecked = true;
+                SqlConnectButton.Content = "断开数据库";
+                SqlConnectEllipse.Fill = Brushes.Green;
+            }
+        }
+        /// <summary>
+        ///     写入表方法
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="protocol"></param>
+        /// <param name="address"></param>
+        /// <param name="data"></param>
+        /// <param name="statue"></param>
+        /// <param name="workSheet"></param>
+        /// <param name="sql"></param>
+        private void DatabaseWrite(string type, string protocol, string address, string data, string statue, string workSheet, SqlConnection sql)
+        {
+            try
+            {
+                var command = $"insert into {workSheet}(type, protocol, address, data, statue) values('{type}', '{protocol}', '{address}', '{data}', '{statue}')";
+                var returnValue = ExecuteSqlCommand(command, sql);
+                if (returnValue != -1)
+                {
+                    //MessageBox.Show("写入成功！");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("写入失败！" + ex.Message);
+            }
+        }
+
+
+
+        #endregion
+
+
     }
+
 }
