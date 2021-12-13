@@ -105,7 +105,7 @@
         <Grid Grid.Column="0" Grid.Row="1" Margin="0,0,0,30">
             <Grid.RowDefinitions>
                 <RowDefinition Height="120*" MinHeight="120" />
-                <RowDefinition Height="60*" MinHeight="60" />
+                <RowDefinition Height="80*" MinHeight="80" />
                 <RowDefinition Height="120*" MinHeight="120" />
             </Grid.RowDefinitions>
             <!--设备参数标定面板-->
@@ -154,19 +154,27 @@
                 <Grid VerticalAlignment="Center" Margin="5">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="auto" />
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="1.5*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <CheckBox x:Name="AutoClearCheckBox" Margin="5,5,10,5" Content="自动清空"
-                                  HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" IsChecked="True" />
-                        <Button Command="Save" Content="保存文件" Margin="5,5,10,5" HorizontalAlignment="Stretch"
-                                VerticalAlignment="Stretch" />
-                    </StackPanel>
-                    <Button x:Name="ClearReceiveButton" Grid.Column="1" Margin="5" Content="清空接收区"
+                    <DockPanel Margin="5">
+                        <ToggleButton x:Name="SqlConnectButton" Content="连接数据库" MinWidth="90"
+                            Checked="SqlConnectButton_Checked" Unchecked="SqlConnectButton_Unchecked" />
+                        <Ellipse Height="20" Width="20" x:Name="SqlConnectEllipse" HorizontalAlignment="Center" Stroke="White" Fill="Gray" />
+                    </DockPanel>
+                    <CheckBox Margin="5" Grid.Column="1" x:Name="AutoSaveToSqlCheckBox" Content="自动写入" VerticalAlignment="Center" />
+
+                    <Button x:Name="ClearReceiveButton" Grid.Row="1" Margin="5" Content="清空接收区"
                             Click="ClearReceiveButton_Click" />
+                    <CheckBox x:Name="AutoClearCheckBox" Grid.Column="1" Grid.Row="1" Margin="5" Content="自动清空"
+                                  HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch" IsChecked="True" />
+                    <Button Command="Save"  Content="保存文件" HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch" Visibility="Hidden"/>
+
 
                     <!--<CheckBox x:Name="hexadecimalDisplayCheckBox" Unchecked="HexadecimalDisplayCheckBox_Unchecked" Checked="HexadecimalDisplayCheckBox_Checked" Grid.Row="2" Grid.Column="0" Margin="5" Content="十六进制显示" VerticalContentAlignment="Center"/>-->
                     <!--<ToggleButton x:Name="stopShowingButton" Grid.Row="0" Grid.Column="1" Margin="5" Content="停止显示" Checked="StopShowingButton_Checked" Unchecked="StopShowingButton_Unchecked"/>-->
