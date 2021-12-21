@@ -462,12 +462,12 @@ namespace PDS800_WirelessTransmitter_Calibration
             this.EstablishConnectionButton.Dispatcher.Invoke(this.EstablishConnectionButtonEnabled());
             this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.PartialPanelDisplay(txt));
             this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.ConnectSuccessDisplay());
-            MessageBox.Show("建立连接成功");
+            MessageBox.Show("与无线仪表连接成功");
         }
 
         private Action ConnectSuccessDisplay() => this.ConnectSuccessDisplay_Action;
 
-        private void ConnectSuccessDisplay_Action() => this.StatusTextBlock.Text = "建立连接成功！";
+        private void ConnectSuccessDisplay_Action() => this.StatusTextBlock.Text = "仪表连接成功！";
 
         private Action EstablishConnectionButtonEnabled() => this.EstablishConnectionButtonEnabled_Action;
 
@@ -493,7 +493,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="txt"></param>
         private void SendConfirmationFrame(string txt)
         {
-            // 如果不需要建立连接，发送常规确认帧
+            // 如果不需要建立仪表连接，发送常规确认帧
             if (this.ConnectFlag == false)
             {
                 try
@@ -543,7 +543,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     Console.WriteLine(str);
                 }
             }
-            // 如果需要建立连接，用建立连接帧替代确认帧
+            // 如果需要建立仪表连接，用仪表连接帧替代确认帧
             else
             {
                 try
@@ -2665,7 +2665,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         }
 
         /// <summary>
-        ///     建立连接处理程序
+        ///     仪表连接处理程序
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -2689,21 +2689,21 @@ namespace PDS800_WirelessTransmitter_Calibration
                         this.ConnectFlag = true;
                     }
 
-                    this.EstablishConnectionButton.Content = "关闭连接";
+                    this.EstablishConnectionButton.Content = "断开仪表";
                     this.EstablishConnectionButton.IsEnabled = false;
                     // 更新率锁定
                     this.RegularDataUpdateRate.IsEnabled = false;
-                    this.StatusTextBlock.Text = "正在建立连接……";
+                    this.StatusTextBlock.Text = "正在连接仪表……";
                 }
                 catch (Exception ex)
                 {
                     var str = ex.StackTrace;
                     Console.WriteLine(str);
                     // 异常时显示提示文字
-                    this.StatusTextBlock.Text = "建立连接出错！";
+                    this.StatusTextBlock.Text = "仪表连接出错！";
                     // 指示灯变灰
                     this.EstablishConnectionButton.IsEnabled = true;
-                    this.EstablishConnectionButton.Content = "建立连接";
+                    this.EstablishConnectionButton.Content = "连接仪表";
                     this.ConnectFlag = false;
                     this.ConnectionStatusEllipse.Fill = Brushes.Gray;
                 }
@@ -2800,7 +2800,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         }
 
         /// <summary>
-        ///     断开连接处理程序
+        ///     断开仪表处理程序
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
@@ -2818,22 +2818,22 @@ namespace PDS800_WirelessTransmitter_Calibration
                     this.SerialPortSend(this.SendTextBox.Text);
                     // serialPort.Write(EstablishBuild_Text());
                     // 指示灯变灰
-                    this.EstablishConnectionButton.Content = "建立连接";
+                    this.EstablishConnectionButton.Content = "连接仪表";
                     this.ConnectFlag = false;
                     this.ConnectionStatusEllipse.Fill = Brushes.Gray;
                     // 更新率不锁定
                     this.RegularDataUpdateRate.IsEnabled = true;
                     this.EstablishConnectionButton.IsEnabled = true;
-                    this.StatusTextBlock.Text = "连接已断开";
+                    this.StatusTextBlock.Text = "仪表连接已断开";
                 }
                 catch (Exception ex)
                 {
                     var str = ex.StackTrace;
                     Console.WriteLine(str);
                     // 异常时显示提示文字
-                    this.StatusTextBlock.Text = "断开连接出错！";
+                    this.StatusTextBlock.Text = "断开仪表出错！";
                     // 指示灯变灰
-                    this.EstablishConnectionButton.Content = "关闭连接";
+                    this.EstablishConnectionButton.Content = "断开仪表";
                     this.EstablishConnectionButton.IsEnabled = true;
                     this.ConnectionStatusEllipse.Fill = Brushes.Green;
                 }
@@ -2961,7 +2961,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             }
             else
             {
-                this.StatusTextBlock.Text = "请先建立连接！";
+                this.StatusTextBlock.Text = "请先连接仪表！";
             }
         }
 
@@ -3095,7 +3095,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             }
             else
             {
-                this.StatusTextBlock.Text = "请先建立连接！";
+                this.StatusTextBlock.Text = "请先连接仪表！";
             }
         }
 
@@ -3396,14 +3396,14 @@ namespace PDS800_WirelessTransmitter_Calibration
             try
             {
                 this.CalibrationSqlConnect.Open();
-                MessageBox.Show($"与服务器{SqlServer}建立连接：操作数据库为{SqlDatabase}。", "建立连接", MessageBoxButton.OK,
+                MessageBox.Show($"与服务器{SqlServer}建立连接：操作数据库为{SqlDatabase}。", "建立数据库连接", MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 this.SqlConnectButton.Content = "断开数据库";
                 this.SqlConnectEllipse.Fill = Brushes.Green;
             }
             catch (Exception ex)
             {
-                MessageBox.Show("建立连接失败：" + ex.Message, "建立连接", MessageBoxButton.OK,
+                MessageBox.Show("建立连接失败：" + ex.Message, "建立数据库连接", MessageBoxButton.OK,
                     MessageBoxImage.Exclamation);
                 this.SqlConnectButton.IsChecked = false;
                 this.SqlConnectButton.Content = "连接数据库";
@@ -3424,14 +3424,14 @@ namespace PDS800_WirelessTransmitter_Calibration
             try
             {
                 this.CalibrationSqlConnect.Close();
-                MessageBox.Show($"与服务器{SqlServer}断开连接：操作数据库为{SqlDatabase}。", "断开连接", MessageBoxButton.OK,
+                MessageBox.Show($"与服务器{SqlServer}断开连接：操作数据库为{SqlDatabase}。", "断开数据库连接", MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 this.SqlConnectButton.Content = "连接数据库";
                 this.SqlConnectEllipse.Fill = Brushes.Gray;
             }
             catch (Exception ex)
             {
-                MessageBox.Show("断开连接失败：" + ex.Message, "断开连接", MessageBoxButton.OK,
+                MessageBox.Show("断开连接失败：" + ex.Message, "断开数据库连接", MessageBoxButton.OK,
                     MessageBoxImage.Exclamation);
                 this.SqlConnectButton.IsChecked = true;
                 this.SqlConnectButton.Content = "断开数据库";
@@ -3973,10 +3973,11 @@ namespace PDS800_WirelessTransmitter_Calibration
             this.CalibrationInstructionsTextBox.SelectionStart = this.CalibrationInstructionsTextBox.Text.Length;
             e.Handled = true;
         }
-        #endregion
-
 
         #endregion
+
+        #endregion
+
 
     }
 
