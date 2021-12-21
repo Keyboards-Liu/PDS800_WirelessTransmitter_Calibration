@@ -1,6 +1,4 @@
-﻿using Microsoft.Research.DynamicDataDisplay;
-using Microsoft.Research.DynamicDataDisplay.DataSources;
-using System;
+﻿using System;
 using System.Data.SqlClient;
 using System.Globalization;
 using System.IO.Ports;
@@ -11,6 +9,8 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Microsoft.Research.DynamicDataDisplay;
+using Microsoft.Research.DynamicDataDisplay.DataSources;
 
 namespace PDS800_WirelessTransmitter_Calibration
 {
@@ -3264,6 +3264,211 @@ namespace PDS800_WirelessTransmitter_Calibration
 
         #endregion
 
+        #region 绘图方法
+        /// <summary>
+        ///     画折线图
+        /// </summary>
+        public ObservableDataSource<Point> DataSource { get; private set; } = new ObservableDataSource<Point>();
+
+        public int PlotPointX { get; private set; } = 1;
+        public double PlotPointY { get; private set; }
+        public bool ConnectFlag { get; private set; }
+        /// <summary>
+        ///     绘图方法
+        /// </summary>
+        private void AnimatedPlot()
+        {
+            double x = this.PlotPointX;
+            try
+            {
+                this.PlotPointY = this.RealTimeData;
+            }
+            catch (Exception ex)
+            {
+                var str = ex.StackTrace;
+                Console.WriteLine(str);
+            }
+
+            var point = new Point(x, this.PlotPointY);
+            this.DataSource.AppendAsync(this.Dispatcher, point);
+            this.PlotPointX++;
+        }
+
+        /// <summary>
+        ///     加载绘图区
+        /// </summary>
+        private void Plot_Loaded()
+        {
+            this.Plotter.AxisGrid.Visibility = Visibility.Hidden;
+            this.Plotter.AddLineGraph(this.DataSource, Colors.Blue, 2, "实时数据");
+            this.Plotter.Viewport.Visible = new Rect(0, -1, 5, 24);
+            this.Plotter.Viewport.FitToView();
+        }
+        #endregion
+
+        #region 数据库方法
+        #region 数据库操作字符串定义
+
+        #region 连接字符串
+
+        /// <summary>
+        ///     服务器连接字符串
+        /// </summary>
+        public static string ConnectString { get; set; }
+
+
+        /// <summary>
+        ///     服务器名称
+        /// </summary>
+        private static string SqlServer { get; set; }
+
+        /// <summary>
+        ///     身份验证类型
+        /// </summary>
+        private static string SqlIntegratedSecurity { get; set; }
+
+        /// <summary>
+        ///     数据库名称
+        /// </summary>
+        private static string SqlDatabase { get; set; }
+
+        /// <summary>
+        ///     工作表
+        /// </summary>
+        private static string WorkSheet { get; set; }
+
+        #endregion 连接字符串
+
+        #endregion 数据库操作字符串定义
+
+
+        #region 声明
+
+        /// <summary>
+        ///     标定用数据库连接
+        /// </summary>
+        public SqlConnection CalibrationSqlConnect { get; set; }
+
+
+        /// <summary>
+        ///     执行数据库命令
+        /// </summary>
+        /// <param name="command">需要执行的命令</param>
+        /// <param name="sql">执行命令的数据库连接对象</param>
+        private int ExecuteSqlCommand(string command, SqlConnection sql)
+        {
+            var returnValue = -1;
+            var cmd = new SqlCommand(command, sql);
+            try
+            {
+                returnValue = cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                var str = ex.StackTrace;
+                Console.WriteLine(str);
+                MessageBox.Show(ex.Message);
+            }
+            return returnValue;
+        }
+
+        #endregion
+
+        /// <summary>
+        ///     建立数据库连接
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void SqlConnectButton_Checked(object sender, RoutedEventArgs e)
+        {
+            var sqlSetting = new SqlSetting();
+            sqlSetting.ShowDialog();
+            SqlServer = sqlSetting.setSqlServer;
+            SqlIntegratedSecurity = sqlSetting.setSqlIntegratedSecurity;
+            SqlDatabase = sqlSetting.setSqlDatabase;
+            WorkSheet = sqlSetting.setWorkSheet;
+
+            ConnectString = $"Server={SqlServer}; Integrated security={SqlIntegratedSecurity}; database={SqlDatabase}";
+            this.CalibrationSqlConnect = new SqlConnection(ConnectString);
+
+
+            // 连接到数据库服务器
+            try
+            {
+                this.CalibrationSqlConnect.Open();
+                MessageBox.Show($"与服务器{SqlServer}建立连接：操作数据库为{SqlDatabase}。", "建立连接", MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                this.SqlConnectButton.Content = "断开数据库";
+                this.SqlConnectEllipse.Fill = Brushes.Green;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("建立连接失败：" + ex.Message, "建立连接", MessageBoxButton.OK,
+                    MessageBoxImage.Exclamation);
+                this.SqlConnectButton.IsChecked = false;
+                this.SqlConnectButton.Content = "连接数据库";
+                this.SqlConnectEllipse.Fill = Brushes.Gray;
+            }
+            var command = $"create table {WorkSheet} ( id int identity(1, 1) primary key, type varchar(MAX), protocol varchar(MAX), address varchar(MAX), data varchar(MAX), statue varchar(MAX))";
+            // 创建数据表（如果已经存在就不创建了）
+            this.ExecuteSqlCommand(command, this.CalibrationSqlConnect);
+        }
+
+        /// <summary>
+        ///     断开数据库连接
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void SqlConnectButton_Unchecked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                this.CalibrationSqlConnect.Close();
+                MessageBox.Show($"与服务器{SqlServer}断开连接：操作数据库为{SqlDatabase}。", "断开连接", MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                this.SqlConnectButton.Content = "连接数据库";
+                this.SqlConnectEllipse.Fill = Brushes.Gray;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("断开连接失败：" + ex.Message, "断开连接", MessageBoxButton.OK,
+                    MessageBoxImage.Exclamation);
+                this.SqlConnectButton.IsChecked = true;
+                this.SqlConnectButton.Content = "断开数据库";
+                this.SqlConnectEllipse.Fill = Brushes.Green;
+            }
+        }
+        /// <summary>
+        ///     写入表方法
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="protocol"></param>
+        /// <param name="address"></param>
+        /// <param name="data"></param>
+        /// <param name="statue"></param>
+        /// <param name="workSheet"></param>
+        /// <param name="sql"></param>
+        private void DatabaseWrite(string type, string protocol, string address, string data, string statue, string workSheet, SqlConnection sql)
+        {
+            try
+            {
+                var command = $"insert into {workSheet}(type, protocol, address, data, statue) values('{type}', '{protocol}', '{address}', '{data}', '{statue}')";
+                var returnValue = this.ExecuteSqlCommand(command, sql);
+                if (returnValue != -1)
+                {
+                    //MessageBox.Show("写入成功！");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("写入失败！" + ex.Message);
+            }
+        }
+
+
+
+        #endregion
+
         #region 其他方法
 
         /// <summary>
@@ -3652,7 +3857,26 @@ namespace PDS800_WirelessTransmitter_Calibration
             this.ResCyclicRedundancyCheckDockPanel.Visibility = Visibility.Collapsed;
         }
 
-        #endregion
+        /// <summary>
+        ///     更新率设置
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void RegularDataUpdateRate_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            {
+                if (this.RegularDataUpdateRate.Text != "")
+                {
+                    if (this.IsValid(this.RegularDataUpdateRate.Text) == false ||
+                        Convert.ToInt32(this.RegularDataUpdateRate.Text, 16) > 65535 ||
+                        Convert.ToInt32(this.RegularDataUpdateRate.Text, 16) < 0)
+                    {
+                        MessageBox.Show("请输入0 - 65535整数");
+                        this.RegularDataUpdateRate.Text = "8";
+                    }
+                }
+            }
+        }
 
         #region 数据预览
         /// <summary>
@@ -3751,223 +3975,8 @@ namespace PDS800_WirelessTransmitter_Calibration
         }
         #endregion
 
-        #region 绘图方法
-        /// <summary>
-        ///     画折线图
-        /// </summary>
-        public ObservableDataSource<Point> DataSource { get; private set; } = new ObservableDataSource<Point>();
-
-        public int PlotPointX { get; private set; } = 1;
-        public double PlotPointY { get; private set; }
-        public bool ConnectFlag { get; private set; }
-
-        private void AnimatedPlot()
-        {
-            double x = this.PlotPointX;
-            try
-            {
-                this.PlotPointY = this.RealTimeData;
-            }
-            catch (Exception ex)
-            {
-                var str = ex.StackTrace;
-                Console.WriteLine(str);
-            }
-
-            var point = new Point(x, this.PlotPointY);
-            this.DataSource.AppendAsync(this.Dispatcher, point);
-            this.PlotPointX++;
-        }
-
-
-        private void Plot_Loaded()
-        {
-            this.Plotter.AxisGrid.Visibility = Visibility.Hidden;
-            this.Plotter.AddLineGraph(this.DataSource, Colors.Blue, 2, "实时数据");
-            this.Plotter.Viewport.Visible = new Rect(0, -1, 5, 24);
-            this.Plotter.Viewport.FitToView();
-        }
-
-        private void RegularDataUpdateRate_PreviewTextInput(object sender, TextCompositionEventArgs e)
-        {
-            {
-                if (this.RegularDataUpdateRate.Text != "")
-                {
-                    if (this.IsValid(this.RegularDataUpdateRate.Text) == false ||
-                        Convert.ToInt32(this.RegularDataUpdateRate.Text, 16) > 65535 ||
-                        Convert.ToInt32(this.RegularDataUpdateRate.Text, 16) < 0)
-                    {
-                        MessageBox.Show("请输入0 - 65535整数");
-                        this.RegularDataUpdateRate.Text = "8";
-                    }
-                }
-            }
-        }
-        #endregion
-
-        #region 数据库方法
-        #region 数据库操作字符串定义
-
-        #region 连接字符串
-
-        /// <summary>
-        ///     服务器连接字符串
-        /// </summary>
-        public static string ConnectString { get; set; }
-
-
-        /// <summary>
-        ///     服务器名称
-        /// </summary>
-        private static string SqlServer { get; set; }
-
-        /// <summary>
-        ///     身份验证类型
-        /// </summary>
-        private static string SqlIntegratedSecurity { get; set; }
-
-        /// <summary>
-        ///     数据库名称
-        /// </summary>
-        private static string SqlDatabase { get; set; }
-
-        /// <summary>
-        ///     工作表
-        /// </summary>
-        private static string WorkSheet { get; set; }
-
-        #endregion 连接字符串
-
-        #endregion 数据库操作字符串定义
-
-
-        #region 声明
-
-        /// <summary>
-        ///     标定用数据库连接
-        /// </summary>
-        public SqlConnection CalibrationSqlConnect { get; set; }
-
-
-        /// <summary>
-        ///     执行数据库命令
-        /// </summary>
-        /// <param name="command">需要执行的命令</param>
-        /// <param name="sql">执行命令的数据库连接对象</param>
-        private int ExecuteSqlCommand(string command, SqlConnection sql)
-        {
-            var returnValue = -1;
-            var cmd = new SqlCommand(command, sql);
-            try
-            {
-                returnValue = cmd.ExecuteNonQuery();
-            }
-            catch (Exception ex)
-            {
-                var str = ex.StackTrace;
-                Console.WriteLine(str);
-                MessageBox.Show(ex.Message);
-            }
-            return returnValue;
-        }
 
         #endregion
-
-        /// <summary>
-        ///     建立数据库连接
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void SqlConnectButton_Checked(object sender, RoutedEventArgs e)
-        {
-            var sqlSetting = new SqlSetting();
-            sqlSetting.ShowDialog();
-            SqlServer = sqlSetting.setSqlServer;
-            SqlIntegratedSecurity = sqlSetting.setSqlIntegratedSecurity;
-            SqlDatabase = sqlSetting.setSqlDatabase;
-            WorkSheet = sqlSetting.setWorkSheet;
-
-            ConnectString = $"Server={SqlServer}; Integrated security={SqlIntegratedSecurity}; database={SqlDatabase}";
-            this.CalibrationSqlConnect = new SqlConnection(ConnectString);
-
-
-            // 连接到数据库服务器
-            try
-            {
-                this.CalibrationSqlConnect.Open();
-                MessageBox.Show($"与服务器{SqlServer}建立连接：操作数据库为{SqlDatabase}。", "建立连接", MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-                this.SqlConnectButton.Content = "断开数据库";
-                this.SqlConnectEllipse.Fill = Brushes.Green;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("建立连接失败：" + ex.Message, "建立连接", MessageBoxButton.OK,
-                    MessageBoxImage.Exclamation);
-                this.SqlConnectButton.IsChecked = false;
-                this.SqlConnectButton.Content = "连接数据库";
-                this.SqlConnectEllipse.Fill = Brushes.Gray;
-            }
-            var command = $"create table {WorkSheet} ( id int identity(1, 1) primary key, type varchar(MAX), protocol varchar(MAX), address varchar(MAX), data varchar(MAX), statue varchar(MAX))";
-            // 创建数据表（如果已经存在就不创建了）
-            this.ExecuteSqlCommand(command, this.CalibrationSqlConnect);
-        }
-
-        /// <summary>
-        ///     断开数据库连接
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void SqlConnectButton_Unchecked(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                this.CalibrationSqlConnect.Close();
-                MessageBox.Show($"与服务器{SqlServer}断开连接：操作数据库为{SqlDatabase}。", "断开连接", MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-                this.SqlConnectButton.Content = "连接数据库";
-                this.SqlConnectEllipse.Fill = Brushes.Gray;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("断开连接失败：" + ex.Message, "断开连接", MessageBoxButton.OK,
-                    MessageBoxImage.Exclamation);
-                this.SqlConnectButton.IsChecked = true;
-                this.SqlConnectButton.Content = "断开数据库";
-                this.SqlConnectEllipse.Fill = Brushes.Green;
-            }
-        }
-        /// <summary>
-        ///     写入表方法
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="protocol"></param>
-        /// <param name="address"></param>
-        /// <param name="data"></param>
-        /// <param name="statue"></param>
-        /// <param name="workSheet"></param>
-        /// <param name="sql"></param>
-        private void DatabaseWrite(string type, string protocol, string address, string data, string statue, string workSheet, SqlConnection sql)
-        {
-            try
-            {
-                var command = $"insert into {workSheet}(type, protocol, address, data, statue) values('{type}', '{protocol}', '{address}', '{data}', '{statue}')";
-                var returnValue = this.ExecuteSqlCommand(command, sql);
-                if (returnValue != -1)
-                {
-                    //MessageBox.Show("写入成功！");
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("写入失败！" + ex.Message);
-            }
-        }
-
-
-
-        #endregion
-
 
     }
 
