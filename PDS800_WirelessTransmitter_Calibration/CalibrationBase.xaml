@@ -11,8 +11,7 @@
         MinHeight="600 "
         MinWidth="800"
         Height="600 "
-        Width="800"
-        Background="White">
+        Width="800">
     <Window.Resources>
         <ResourceDictionary>
             <LinearGradientBrush x:Key="TabItem.Static.Background"
@@ -1235,7 +1234,7 @@
             <RowDefinition Height="34" />
             <RowDefinition />
             <RowDefinition Height="auto" />
-            <RowDefinition Height="34" />
+            <RowDefinition Height="40" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" />
@@ -1306,14 +1305,15 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <!--设备参数标定面板-->
-            <GroupBox Header="仪表连接面板">
+            <!--状态连接面板-->
+            <GroupBox Header="状态连接面板">
                 <DockPanel>
                     <DockPanel DockPanel.Dock="Top">
                         <Ellipse x:Name="ConnectionStatusEllipse"
-                                 DockPanel.Dock="Left" 
-                                 Margin="5"/>
+                                 DockPanel.Dock="Left"
+                                 Margin="5" />
                         <TextBlock Text="仪表连接状态"
                                    DockPanel.Dock="Left" />
                         <ToggleButton x:Name="EstablishConnectionButton"
@@ -1476,28 +1476,25 @@
                             <TextBlock Text="单位" />
                             <ComboBox x:Name="CalibrationUnitComboBox"
                                       SelectedIndex="0">
-                                <ComboBoxItem Content="Pa(帕)" />
-                                <ComboBoxItem Content="kPa（千帕）" />
-                                <ComboBoxItem Content="MPa（兆帕）" />
-                                <ComboBoxItem Content="kg/cm²（千克/厘米²）" />
-                                <ComboBoxItem Content="g/cm²（克/厘米²）" />
-                                <ComboBoxItem Content="Torr（托）" />
-                                <ComboBoxItem Content="atm（标准大气压）" />
-                                <ComboBoxItem Content="i4H₂0（英寸水柱4℃）" />
-                                <ComboBoxItem Content="m4H₂0（毫米水柱4℃）" />
-                                <ComboBoxItem Content="bar（巴）" />
-                                <ComboBoxItem Content="mbar（毫巴）" />
-                                <ComboBoxItem Content="inH₂0（英寸水柱20℃）" />
-                                <ComboBoxItem Content="inHg（英寸汞柱）" />
-                                <ComboBoxItem Content="ftH₂0（英尺水柱20℃" />
-                                <ComboBoxItem Content="mmH₂0（毫米水柱20℃）" />
-                                <ComboBoxItem Content="mmHg（毫米汞柱）" />
-                                <ComboBoxItem Content="psi（磅/英寸²）" />
-                                <ComboBoxItem Content="mH₂0（米水柱20℃）" />
+                                <ComboBoxItem Content="0x02，Pa(帕)" />
+                                <ComboBoxItem Content="0x04，kPa（千帕）" />
+                                <ComboBoxItem Content="0x08，MPa（兆帕）" />
+                                <!--<ComboBoxItem Content="0x04，kg/cm²（千克/厘米²）" />
+                                <ComboBoxItem Content="0x04，g/cm²（克/厘米²）" />
+                                <ComboBoxItem Content="0x04，Torr（托）" />
+                                <ComboBoxItem Content="0x04，atm（标准大气压）" />
+                                <ComboBoxItem Content="0x04，i4H₂0（英寸水柱4℃）" />
+                                <ComboBoxItem Content="0x04，m4H₂0（毫米水柱4℃）" />
+                                <ComboBoxItem Content="0x04，bar（巴）" />
+                                <ComboBoxItem Content="0x04，mbar（毫巴）" />
+                                <ComboBoxItem Content="0x04，inH₂0（英寸水柱20℃）" />
+                                <ComboBoxItem Content="0x04，inHg（英寸汞柱）" />
+                                <ComboBoxItem Content="0x04，ftH₂0（英尺水柱20℃" />
+                                <ComboBoxItem Content="0x04，mmH₂0（毫米水柱20℃）" />
+                                <ComboBoxItem Content="0x04，mmHg（毫米汞柱）" />
+                                <ComboBoxItem Content="0x04，psi（磅/英寸²）" />
+                                <ComboBoxItem Content="0x04，mH₂0（米水柱20℃）" />-->
                             </ComboBox>
-                            <TextBox x:Name="CalibrationUnitTextBox"
-                                     Text="04"
-                                     VerticalAlignment="Center" />
                         </DockPanel>
                         <DockPanel DockPanel.Dock="Top">
                             <TextBlock Text="标定数据" />
@@ -1598,6 +1595,8 @@
                     </DockPanel>
                 </TabItem>
             </TabControl>
+            <GroupBox Header="手动测试面板"
+                      Grid.Row="2" />
         </Grid>
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
@@ -1808,7 +1807,19 @@
                 <Grid Grid.Row="2">
                     <d3:ChartPlotter x:Name="Plotter"
                                      FontSize="8"
-                                     Margin="0,5,5,0" />
+                                     FontFamily="Times New Roman"
+                                     LegendVisible="False">
+                        <d3:ChartPlotter.HorizontalAxis>
+                            <d3:HorizontalIntegerAxis Height="25"
+                                                      Margin="0,-10,0,0"
+                                                      ShowMinorTicks="False"
+                                                      ShowMayorLabels="False"></d3:HorizontalIntegerAxis>
+                        </d3:ChartPlotter.HorizontalAxis>
+                        <d3:ChartPlotter.VerticalAxis>
+                            <d3:VerticalAxis Width="25"
+                                             Margin="0,-10,0,0" />
+                        </d3:ChartPlotter.VerticalAxis>
+                    </d3:ChartPlotter>
                 </Grid>
             </GroupBox>
             <!--发送文本面板-->

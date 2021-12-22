@@ -2936,7 +2936,8 @@ namespace PDS800_WirelessTransmitter_Calibration
         private void DescriptionCalibrationButton_Click(object sender, RoutedEventArgs e)
         {
             // 判断仪表参数是否解析完成和是否处于连接状态
-            if (this.ResCyclicRedundancyCheck.Text == "通过" && this.ConnectionStatusEllipse.Fill == Brushes.Green)
+            if (this.ResCyclicRedundancyCheck.Text == "通过" &&
+                this.ConnectionStatusEllipse.Fill == Brushes.Green)
             {
                 try
                 {
@@ -2977,8 +2978,10 @@ namespace PDS800_WirelessTransmitter_Calibration
                 case "FE":
                     {
                         // 获取所需解析数据
-                        this.ParameterAcquisition_FE(out var strHeader, out var strCommand, out var strAddress,
-                            out var strProtocolVendor, out var strHandler, out var strGroup);
+                        this.ParameterAcquisition_FE(out var strHeader,
+                            out var strCommand, out var strAddress,
+                            out var strProtocolVendor, out var strHandler,
+                            out var strGroup);
                         // 获取设备描述标定信息
                         // 功能码 / 数据类型
                         var strFunctionData = "00 80";
@@ -3072,7 +3075,8 @@ namespace PDS800_WirelessTransmitter_Calibration
         private void ParameterCalibrationButton_Click(object sender, RoutedEventArgs e)
         {
             // 判断仪表参数是否解析完成和是否处于连接状态
-            if (this.ResCyclicRedundancyCheck.Text == "通过" && this.ConnectionStatusEllipse.Fill == Brushes.Green)
+            if (this.ResCyclicRedundancyCheck.Text == "通过" &&
+                this.ConnectionStatusEllipse.Fill == Brushes.Green)
             {
                 try
                 {
@@ -3119,8 +3123,8 @@ namespace PDS800_WirelessTransmitter_Calibration
                         // 标定数据
                         var calibrationParameters = FloatStrToHexStr(this.CalibrationParametersContentTextBox.Text);
                         // 写操作数据区
-                        var strHandlerContent = "F2 " + this.CalibrationParametersComboBox.Text.Substring(2, 2).Trim() + " " +
-                                                this.CalibrationUnitTextBox.Text.Trim() + " " + calibrationParameters;
+                        var strHandlerContent = "F2 " + this.CalibrationParametersComboBox.Text.Substring(2, 2).Trim() +
+                            " " + this.CalibrationUnitComboBox.Text.Substring(2, 2).Trim() + " " + calibrationParameters;
                         // 合成数据域
                         var strContent = strAddress + " " + strProtocolVendor + " " + strHandler + " " + strGroup + " " +
                                          strFunctionData + " " + strHandlerContent;
@@ -3148,8 +3152,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                             var calibrationParameters = FloatStrToHexStr(this.CalibrationParametersContentTextBox.Text);
                             // 写操作数据区
                             var strHandlerContent = "F2 " + this.CalibrationParametersComboBox.Text.Substring(2, 2).Trim() +
-                                                    " " + this.CalibrationUnitTextBox.Text.Trim() + " " +
-                                                    calibrationParameters;
+                                " " + this.CalibrationUnitComboBox.Text.Substring(2, 2).Trim() + " " + calibrationParameters;
                             // 合成数据域
                             var strContent = strProtocolVendor + " " + strHandler + " " + strGroup + " " +
                                              strFunctionData + " " + strHandlerContent;
@@ -3174,8 +3177,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                             var calibrationParameters = FloatStrToHexStr(this.CalibrationParametersContentTextBox.Text);
                             // 写操作数据区
                             var strHandlerContent = "F2 " + this.CalibrationParametersComboBox.Text.Substring(2, 2).Trim() +
-                                                    " " + this.CalibrationUnitTextBox.Text.Trim() + " " +
-                                                    calibrationParameters;
+                                " " + this.CalibrationUnitComboBox.Text.Substring(2, 2).Trim() + " " + calibrationParameters;
                             // 合成数据域
                             var strContent = strCommand + " " + strAddress + " " +
                                              this.FrameUnparsed.Remove(this.FrameUnparsed.Length - 3, 3) + " 00 00 " +
@@ -3273,6 +3275,9 @@ namespace PDS800_WirelessTransmitter_Calibration
         public int PlotPointX { get; private set; } = 1;
         public double PlotPointY { get; private set; }
         public bool ConnectFlag { get; private set; }
+
+        //private List<double> doubleListX = new List<double>();
+        //private List<double> doubleListY = new List<double>();
         /// <summary>
         ///     绘图方法
         /// </summary>
@@ -3291,6 +3296,16 @@ namespace PDS800_WirelessTransmitter_Calibration
 
             var point = new Point(x, this.PlotPointY);
             this.DataSource.AppendAsync(this.Dispatcher, point);
+
+
+            //scottWpfPlot.Plot.Clear();
+            //this.doubleListX.AddRange(new double[] { x });
+            //this.doubleListY.AddRange(new double[] { this.RealTimeData });
+            //var strList = new List<string>();
+
+            //var strArray = strList.ToArray();//strArray=[str0,str1,str2]
+            //scottWpfPlot.Plot.AddScatter(this.doubleListX.ToArray<double>(), this.doubleListY.ToArray<double>());
+            //scottWpfPlot.Refresh();
             this.PlotPointX++;
         }
 
@@ -3299,10 +3314,10 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// </summary>
         private void Plot_Loaded()
         {
-            this.Plotter.AxisGrid.Visibility = Visibility.Hidden;
             this.Plotter.AddLineGraph(this.DataSource, Colors.Blue, 2, "实时数据");
             this.Plotter.Viewport.Visible = new Rect(0, -1, 5, 24);
             this.Plotter.Viewport.FitToView();
+
         }
         #endregion
 
@@ -3383,35 +3398,46 @@ namespace PDS800_WirelessTransmitter_Calibration
         {
             var sqlSetting = new SqlSetting();
             sqlSetting.ShowDialog();
-            SqlServer = sqlSetting.setSqlServer;
-            SqlIntegratedSecurity = sqlSetting.setSqlIntegratedSecurity;
-            SqlDatabase = sqlSetting.setSqlDatabase;
-            WorkSheet = sqlSetting.setWorkSheet;
-
-            ConnectString = $"Server={SqlServer}; Integrated security={SqlIntegratedSecurity}; database={SqlDatabase}";
-            this.CalibrationSqlConnect = new SqlConnection(ConnectString);
-
-
-            // 连接到数据库服务器
-            try
+            if (sqlSetting.SetFlag == false)
             {
-                this.CalibrationSqlConnect.Open();
-                MessageBox.Show($"与服务器{SqlServer}建立连接：操作数据库为{SqlDatabase}。", "建立数据库连接", MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-                this.SqlConnectButton.Content = "断开数据库";
-                this.SqlConnectEllipse.Fill = Brushes.Green;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("建立连接失败：" + ex.Message, "建立数据库连接", MessageBoxButton.OK,
-                    MessageBoxImage.Exclamation);
-                this.SqlConnectButton.IsChecked = false;
+                sqlSetting.Close();
                 this.SqlConnectButton.Content = "连接数据库";
                 this.SqlConnectEllipse.Fill = Brushes.Gray;
+                this.SqlConnectButton.IsChecked = false;
+
             }
-            var command = $"create table {WorkSheet} ( id int identity(1, 1) primary key, type varchar(MAX), protocol varchar(MAX), address varchar(MAX), data varchar(MAX), statue varchar(MAX))";
-            // 创建数据表（如果已经存在就不创建了）
-            this.ExecuteSqlCommand(command, this.CalibrationSqlConnect);
+            else
+            {
+                SqlServer = sqlSetting.SetSqlServer;
+                SqlIntegratedSecurity = sqlSetting.SetSqlIntegratedSecurity;
+                SqlDatabase = sqlSetting.SetSqlDatabase;
+                WorkSheet = sqlSetting.SetWorkSheet;
+                ConnectString = $"Server={SqlServer}; Integrated security={SqlIntegratedSecurity}; database={SqlDatabase}";
+                this.CalibrationSqlConnect = new SqlConnection(ConnectString);
+                // 连接到数据库服务器
+                try
+                {
+                    this.CalibrationSqlConnect.Open();
+                    MessageBox.Show($"与服务器{SqlServer}建立连接：操作数据库为{SqlDatabase}。", "建立数据库连接", MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    this.SqlConnectButton.Content = "断开数据库";
+                    this.SqlConnectEllipse.Fill = Brushes.Green;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("建立连接失败：" + ex.Message, "建立数据库连接", MessageBoxButton.OK,
+                        MessageBoxImage.Exclamation);
+                    this.SqlConnectButton.IsChecked = false;
+                    this.SqlConnectButton.Content = "连接数据库";
+                    this.SqlConnectEllipse.Fill = Brushes.Gray;
+                }
+                var command = $"create table {WorkSheet} ( id int identity(1, 1) primary key, type varchar(MAX), protocol varchar(MAX), address varchar(MAX), data varchar(MAX), statue varchar(MAX))";
+                // 创建数据表（如果已经存在就不创建了）
+                this.ExecuteSqlCommand(command, this.CalibrationSqlConnect);
+            }
+
+
+
         }
 
         /// <summary>
@@ -3421,13 +3447,18 @@ namespace PDS800_WirelessTransmitter_Calibration
         /// <param name="e"></param>
         private void SqlConnectButton_Unchecked(object sender, RoutedEventArgs e)
         {
+            this.SqlConnectButton.Content = "连接数据库";
+            this.SqlConnectEllipse.Fill = Brushes.Gray;
             try
             {
                 this.CalibrationSqlConnect.Close();
                 MessageBox.Show($"与服务器{SqlServer}断开连接：操作数据库为{SqlDatabase}。", "断开数据库连接", MessageBoxButton.OK,
                     MessageBoxImage.Information);
-                this.SqlConnectButton.Content = "连接数据库";
-                this.SqlConnectEllipse.Fill = Brushes.Gray;
+
+            }
+            catch (NullReferenceException)
+            {
+
             }
             catch (Exception ex)
             {
@@ -3437,6 +3468,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 this.SqlConnectButton.Content = "断开数据库";
                 this.SqlConnectEllipse.Fill = Brushes.Green;
             }
+
         }
         /// <summary>
         ///     写入表方法
@@ -3973,6 +4005,8 @@ namespace PDS800_WirelessTransmitter_Calibration
             this.CalibrationInstructionsTextBox.SelectionStart = this.CalibrationInstructionsTextBox.Text.Length;
             e.Handled = true;
         }
+
+
 
         #endregion
 

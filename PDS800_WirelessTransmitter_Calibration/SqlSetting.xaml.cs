@@ -1,43 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+﻿using System.Windows;
 
 
 namespace PDS800_WirelessTransmitter_Calibration
 {
     /// <summary>
-    /// SqlSetting.xaml 的交互逻辑
+    ///     SqlSetting.xaml 的交互逻辑
     /// </summary>
     public partial class SqlSetting : Window
     {
-        public string setSqlServer, setSqlIntegratedSecurity, setSqlDatabase, setWorkSheet;
-        public SqlSetting()
-        {
-            InitializeComponent();
-            this.Closing += Window_Closing;
-        }
+        public SqlSetting() => this.InitializeComponent();
+
+        public string SetSqlServer { get; set; }
+        public string SetSqlIntegratedSecurity { get; set; }
+        public string SetSqlDatabase { get; set; }
+        public string SetWorkSheet { get; set; }
+        public bool SetFlag { get; set; }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-
+            this.SetSqlServer = this.SqlServer.Text.Replace("\\\\", "\\");
+            this.SetSqlIntegratedSecurity = this.SqlIntegratedSecurity.Text;
+            this.SetSqlDatabase = this.SqlDatabase.Text;
+            this.SetWorkSheet = this.WorkSheet.Text;
+            this.SetFlag = true;
             this.Close();
-        }
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            setSqlServer = SqlServer.Text.Replace("\\\\","\\");
-            setSqlIntegratedSecurity = SqlIntegratedSecurity.Text;
-            setSqlDatabase = SqlDatabase.Text;
-            setWorkSheet = WorkSheet.Text;
         }
     }
 }
