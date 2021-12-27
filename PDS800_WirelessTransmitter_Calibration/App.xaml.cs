@@ -1,5 +1,6 @@
 ﻿using Lierda.WPFHelper;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace PDS800_WirelessTransmitter_Calibration
 {
@@ -8,12 +9,9 @@ namespace PDS800_WirelessTransmitter_Calibration
     /// </summary>
     public partial class App
     {
-        public LierdaCracker Cracker { get; set; } = new LierdaCracker();
-
-        protected override void OnStartup(StartupEventArgs e)
+        void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            Cracker.Cracker(500);//垃圾回收间隔时间
-            base.OnStartup(e);
+            MessageBox.Show(e.Exception.ToString());
         }
     }
 }

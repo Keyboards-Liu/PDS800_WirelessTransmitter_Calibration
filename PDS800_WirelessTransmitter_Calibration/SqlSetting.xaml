@@ -21,18 +21,18 @@
             <RowDefinition Height="auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock Margin="5"
+        <Label Margin="5"
                    Grid.Row="0"
-                   Text="服务器名称" />
-        <TextBlock Margin="5"
+                   Content="服务器名称" />
+        <Label Margin="5"
                    Grid.Row="1"
-                   Text="身份验证类型" />
-        <TextBlock Margin="5"
+                   Content="身份验证类型" />
+        <Label Margin="5"
                    Grid.Row="2"
-                   Text="数据库名称" />
-        <TextBlock Margin="5"
+                   Content="数据库名称" />
+        <Label Margin="5"
                    Grid.Row="3"
-                   Text="工作表名称" />
+                   Content="工作表名称" />
         <TextBox x:Name="SqlServer"
                  Margin="5"
                  Grid.Row="0"

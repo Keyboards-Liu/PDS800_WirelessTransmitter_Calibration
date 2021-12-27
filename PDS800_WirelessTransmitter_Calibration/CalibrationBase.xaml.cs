@@ -93,7 +93,16 @@ namespace PDS800_WirelessTransmitter_Calibration
         public CalibrationBase()
         {
             // 初始化组件
-            this.InitializeComponent();
+            try
+            {
+                this.InitializeComponent();
+            }
+            catch (Exception ex)
+            {
+                var str = ex.StackTrace;
+                Console.WriteLine(str);
+                MessageBox.Show(ex.Message);
+            }
             // 检测和添加串口
             this.AddPortName();
             // 开启串口检测定时器，并设置自动检测1秒1次
@@ -109,7 +118,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             // 设置定时时间，开启定时器
             this.AutoSendTimer.Interval = new TimeSpan(0, 0, 0, 0, Convert.ToInt32(this.AutoSendCycleTextBox.Text));
             // 设置状态栏提示
-            this.StatusTextBlock.Text = "准备就绪";
+            this.StatusLabel.Content = "准备就绪";
         }
 
         /// <summary>
@@ -121,7 +130,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         {
             this.DateStr = DateTime.Now.ToString("yyyy-MM-dd");
             this.TimeStr = DateTime.Now.ToString("HH:mm:ss");
-            this.OperationTime.Text = this.DateStr + " " + this.TimeStr;
+            this.OperationTime.Content = this.DateStr + " " + this.TimeStr;
         }
 
         /// <summary>
@@ -175,7 +184,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     this.PortNameComboBox.Items.Remove(this.NewSerialPort.PortName);
                     this.PortNameComboBox.SelectedIndex = 0;
                     // 输出提示信息
-                    this.StatusTextBlock.Text = "串口失效，已自动断开";
+                    this.StatusLabel.Content = "串口失效，已自动断开";
                 }
                 else
                 {
@@ -192,7 +201,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
                         this.PortNameComboBox.SelectedIndex = -1;
                         // 输出提示信息
-                        this.StatusTextBlock.Text = "串口列表已更新！";
+                        this.StatusLabel.Content = "串口列表已更新！";
                     }
                 }
             }
@@ -201,7 +210,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 var str = ex.StackTrace;
                 Console.WriteLine(str);
                 this.TurnOnButton.IsChecked = false;
-                this.StatusTextBlock.Text = "串口检测错误！";
+                this.StatusLabel.Content = "串口检测错误！";
             }
         }
 
@@ -244,7 +253,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 // 关闭串口配置面板, 开启串口, 变更按钮文本, 打开绿灯, 显示提示文字
                 this.SerialSettingControlState(false);
                 this.NewSerialPort.Open();
-                this.StatusTextBlock.Text = "串口已开启";
+                this.StatusLabel.Content = "串口已开启";
                 this.SerialPortStatusEllipse.Fill = Brushes.Green;
                 this.TurnOnButton.Content = "关闭串口";
                 // 设置超时
@@ -262,7 +271,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 var str = ex.StackTrace;
                 Console.WriteLine(str);
                 // 异常时显示提示文字
-                this.StatusTextBlock.Text = "开启串口出错！";
+                this.StatusLabel.Content = "开启串口出错！";
                 this.NewSerialPort.Close();
                 this.AutoSendTimer.Stop();
                 this.TurnOnButton.IsChecked = false;
@@ -283,7 +292,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 this.NewSerialPort.Close();
                 this.AutoSendTimer.Stop();
                 this.SerialSettingControlState(true);
-                this.StatusTextBlock.Text = "串口已关闭";
+                this.StatusLabel.Content = "串口已关闭";
                 this.SerialPortStatusEllipse.Fill = Brushes.Gray;
                 this.TurnOnButton.Content = "打开串口";
                 // 关闭作图
@@ -296,7 +305,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 var str = ex.StackTrace;
                 Console.WriteLine(str);
                 // 异常时显示提示文字
-                this.StatusTextBlock.Text = "关闭串口出错！";
+                this.StatusLabel.Content = "关闭串口出错！";
                 this.TurnOnButton.IsChecked = true;
             }
         }
@@ -401,12 +410,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 (txt.Length + 1) / 3 == 27 ||
                                 (txt.Length + 1) / 3 == 81)
                             {
-                                this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.FullPanelDisplay(txt));
+                                this.StatusReceiveByteLabel.Dispatcher.Invoke(this.FullPanelDisplay(txt));
                             }
                             // 如果是不能解析的帧，就部分显示
                             else if (txt.Replace(" ", "") != "")
                             {
-                                this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.PartialPanelDisplay(txt));
+                                this.StatusReceiveByteLabel.Dispatcher.Invoke(this.PartialPanelDisplay(txt));
                             }
                         }
                         break;
@@ -425,7 +434,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 (txt.Length + 1) / 3 == 78)
                             {
                                 this.IsLoRaFlag = true;
-                                this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.FullPanelDisplay(txt));
+                                this.StatusReceiveByteLabel.Dispatcher.Invoke(this.FullPanelDisplay(txt));
                             }
                             // 如果是能解析的Digi帧（常规数据帧或基本参数帧），就全面板显示
                             else if (txt.Substring(9, 2) == "91" &&
@@ -433,18 +442,18 @@ namespace PDS800_WirelessTransmitter_Calibration
                                 (txt.Length + 1) / 3 == 96)
                             {
                                 this.IsLoRaFlag = false;
-                                this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.FullPanelDisplay(txt));
+                                this.StatusReceiveByteLabel.Dispatcher.Invoke(this.FullPanelDisplay(txt));
                             }
                             // 如果是不能解析的帧，就部分显示
                             else if (txt.Replace(" ", "") != "")
                             {
-                                this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.PartialPanelDisplay(txt));
+                                this.StatusReceiveByteLabel.Dispatcher.Invoke(this.PartialPanelDisplay(txt));
                             }
                         }
                         break;
 
                     default:
-                        this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.PartialPanelDisplay(txt));
+                        this.StatusReceiveByteLabel.Dispatcher.Invoke(this.PartialPanelDisplay(txt));
                         break;
                 }
             }
@@ -460,14 +469,14 @@ namespace PDS800_WirelessTransmitter_Calibration
             this.ConnectFlag = false;
             this.ConnectionStatusEllipse.Dispatcher.Invoke(this.ConnectionStatusEllipseColorCovert());
             this.EstablishConnectionButton.Dispatcher.Invoke(this.EstablishConnectionButtonEnabled());
-            this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.PartialPanelDisplay(txt));
-            this.StatusReceiveByteTextBlock.Dispatcher.Invoke(this.ConnectSuccessDisplay());
+            this.StatusReceiveByteLabel.Dispatcher.Invoke(this.PartialPanelDisplay(txt));
+            this.StatusReceiveByteLabel.Dispatcher.Invoke(this.ConnectSuccessDisplay());
             MessageBox.Show("与无线仪表连接成功");
         }
 
         private Action ConnectSuccessDisplay() => this.ConnectSuccessDisplay_Action;
 
-        private void ConnectSuccessDisplay_Action() => this.StatusTextBlock.Text = "仪表连接成功！";
+        private void ConnectSuccessDisplay_Action() => this.StatusLabel.Content = "仪表连接成功！";
 
         private Action EstablishConnectionButtonEnabled() => this.EstablishConnectionButtonEnabled_Action;
 
@@ -567,7 +576,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         {
             // 更新接收字节数           
             this.ReceiveBytesCount += (uint)((txt.Length + 1) / 3);
-            this.StatusReceiveByteTextBlock.Text = this.ReceiveBytesCount.ToString();
+            this.StatusReceiveByteLabel.Content = this.ReceiveBytesCount.ToString();
             // 在接收窗口中显示字符串
             if (txt.Replace(" ", "").Length >= 0)
             {
@@ -657,7 +666,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 var str = ex.StackTrace;
                 Console.WriteLine(str);
                 // 异常时显示提示文字
-                this.StatusTextBlock.Text = "文本解析出错！";
+                this.StatusLabel.Content = "文本解析出错！";
             }
         }
 
@@ -708,7 +717,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "通信协议解析出错！";
+                                    this.StatusLabel.Content = "通信协议解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -727,7 +736,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "网络地址解析出错！";
+                                    this.StatusLabel.Content = "网络地址解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -763,7 +772,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "厂商号解析出错！";
+                                    this.StatusLabel.Content = "厂商号解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -864,7 +873,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "仪表类型解析出错！";
+                                    this.StatusLabel.Content = "仪表类型解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -882,7 +891,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "仪表组号解析出错！";
+                                    this.StatusLabel.Content = "仪表组号解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -936,7 +945,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "通信效率解析出错！";
+                                                    this.StatusLabel.Content = "通信效率解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -953,7 +962,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "电池电压解析出错！";
+                                                    this.StatusLabel.Content = "电池电压解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -976,7 +985,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "休眠时间解析出错！";
+                                                    this.StatusLabel.Content = "休眠时间解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1038,7 +1047,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                             }
                                                         }
 
-                                                        this.StatusTextBlock.Text = failureMessage;
+                                                        this.StatusLabel.Content = failureMessage;
                                                         //string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
                                                         //string caption = "设备故障";
                                                         //MessageBoxButton button = MessageBoxButton.OK;
@@ -1057,7 +1066,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "仪表状态解析出错！";
+                                                    this.StatusLabel.Content = "仪表状态解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1075,7 +1084,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "运行时间解析出错！";
+                                                    this.StatusLabel.Content = "运行时间解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1114,7 +1123,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "实时数据解析出错！";
+                                                    this.StatusLabel.Content = "实时数据解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1137,7 +1146,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "仪表型号解析出错！";
+                                                    this.StatusLabel.Content = "仪表型号解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1153,7 +1162,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "系列号解析出错！";
+                                                    this.StatusLabel.Content = "系列号解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1169,7 +1178,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "固件版本解析出错！";
+                                                    this.StatusLabel.Content = "固件版本解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1185,7 +1194,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "软件版本解析出错！";
+                                                    this.StatusLabel.Content = "软件版本解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1201,7 +1210,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "量程下限解析出错！";
+                                                    this.StatusLabel.Content = "量程下限解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1217,7 +1226,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "量程上限解析出错！";
+                                                    this.StatusLabel.Content = "量程上限解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1233,7 +1242,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "测量精度解析出错！";
+                                                    this.StatusLabel.Content = "测量精度解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1249,7 +1258,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "防护等级解析出错！";
+                                                    this.StatusLabel.Content = "防护等级解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1265,7 +1274,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "防爆等级解析出错！";
+                                                    this.StatusLabel.Content = "防爆等级解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1281,7 +1290,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "说明解析出错！";
+                                                    this.StatusLabel.Content = "说明解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1351,7 +1360,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "数据类型解析出错！";
+                                    this.StatusLabel.Content = "数据类型解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -1388,7 +1397,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "通信协议解析出错！";
+                                    this.StatusLabel.Content = "通信协议解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -1416,7 +1425,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "网络地址解析出错！";
+                                    this.StatusLabel.Content = "网络地址解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -1452,7 +1461,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "厂商号解析出错！";
+                                    this.StatusLabel.Content = "厂商号解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -1553,7 +1562,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "仪表类型解析出错！";
+                                    this.StatusLabel.Content = "仪表类型解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -1571,7 +1580,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "仪表组号解析出错！";
+                                    this.StatusLabel.Content = "仪表组号解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -1626,7 +1635,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "通信效率解析出错！";
+                                                    this.StatusLabel.Content = "通信效率解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1643,7 +1652,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "电池电压解析出错！";
+                                                    this.StatusLabel.Content = "电池电压解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1666,7 +1675,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "休眠时间解析出错！";
+                                                    this.StatusLabel.Content = "休眠时间解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1728,7 +1737,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                             }
                                                         }
 
-                                                        this.StatusTextBlock.Text = failureMessage;
+                                                        this.StatusLabel.Content = failureMessage;
                                                         //string messageBoxText = "设备上报" + count + "个故障: \n" + failureMessage;
                                                         //string caption = "设备故障";
                                                         //MessageBoxButton button = MessageBoxButton.OK;
@@ -1747,7 +1756,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "仪表状态解析出错！";
+                                                    this.StatusLabel.Content = "仪表状态解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1765,7 +1774,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "运行时间解析出错！";
+                                                    this.StatusLabel.Content = "运行时间解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1807,7 +1816,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "实时数据解析出错！";
+                                                    this.StatusLabel.Content = "实时数据解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1831,7 +1840,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "仪表型号解析出错！";
+                                                    this.StatusLabel.Content = "仪表型号解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1847,7 +1856,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "系列号解析出错！";
+                                                    this.StatusLabel.Content = "系列号解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1863,7 +1872,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "固件版本解析出错！";
+                                                    this.StatusLabel.Content = "固件版本解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1879,7 +1888,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "软件版本解析出错！";
+                                                    this.StatusLabel.Content = "软件版本解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1895,7 +1904,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "量程下限解析出错！";
+                                                    this.StatusLabel.Content = "量程下限解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1911,7 +1920,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "量程上限解析出错！";
+                                                    this.StatusLabel.Content = "量程上限解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1927,7 +1936,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "测量精度解析出错！";
+                                                    this.StatusLabel.Content = "测量精度解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1943,7 +1952,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "防护等级解析出错！";
+                                                    this.StatusLabel.Content = "防护等级解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1959,7 +1968,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "防爆等级解析出错！";
+                                                    this.StatusLabel.Content = "防爆等级解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -1975,7 +1984,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                                     var str = ex.StackTrace;
                                                     Console.WriteLine(str);
                                                     // 异常时显示提示文字
-                                                    this.StatusTextBlock.Text = "说明解析出错！";
+                                                    this.StatusLabel.Content = "说明解析出错！";
                                                     this.TurnOnButton.IsChecked = false;
                                                     return;
                                                 }
@@ -2045,7 +2054,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                                     var str = ex.StackTrace;
                                     Console.WriteLine(str);
                                     // 异常时显示提示文字
-                                    this.StatusTextBlock.Text = "数据类型解析出错！";
+                                    this.StatusLabel.Content = "数据类型解析出错！";
                                     this.TurnOnButton.IsChecked = false;
                                     return;
                                 }
@@ -2071,7 +2080,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                 var str = ex.StackTrace;
                 Console.WriteLine(str);
                 // 异常时显示提示文字
-                this.StatusTextBlock.Text = "参数解析出错！";
+                this.StatusLabel.Content = "参数解析出错！";
                 this.TurnOnButton.IsChecked = false;
             }
             // 更新数据曲线
@@ -2169,7 +2178,7 @@ namespace PDS800_WirelessTransmitter_Calibration
 
             if (!this.NewSerialPort.IsOpen)
             {
-                this.StatusTextBlock.Text = "请先打开串口！";
+                this.StatusLabel.Content = "请先打开串口！";
                 return;
             }
 
@@ -2215,18 +2224,18 @@ namespace PDS800_WirelessTransmitter_Calibration
                 {
                     var str = ex.StackTrace;
                     Console.WriteLine(str);
-                    this.StatusTextBlock.Text = "串口异常";
+                    this.StatusLabel.Content = "串口异常";
                 }
 
                 // 更新发送数据计数
                 this.SendBytesCount += (uint)sendBuffer.Length;
-                this.StatusSendByteTextBlock.Text = this.SendBytesCount.ToString();
+                this.StatusSendByteLabel.Content = this.SendBytesCount.ToString();
             }
             catch (Exception ex)
             {
                 var str = ex.StackTrace;
                 Console.WriteLine(str);
-                this.StatusTextBlock.Text = "当前为16进制发送模式，请输入16进制数据";
+                this.StatusLabel.Content = "当前为16进制发送模式，请输入16进制数据";
                 this.AutoSendCheckBox.IsChecked = false; // 关闭自动发送
             }
         }
@@ -2239,7 +2248,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             this.NewSerialPort.DiscardOutBuffer();
             if (!this.NewSerialPort.IsOpen)
             {
-                this.StatusTextBlock.Text = "请先打开串口！";
+                this.StatusLabel.Content = "请先打开串口！";
                 return;
             }
 
@@ -2285,18 +2294,18 @@ namespace PDS800_WirelessTransmitter_Calibration
                 {
                     var str = ex.StackTrace;
                     Console.WriteLine(str);
-                    this.StatusTextBlock.Text = "串口异常";
+                    this.StatusLabel.Content = "串口异常";
                 }
 
                 // 更新发送数据计数
                 this.SendBytesCount += (uint)sendBuffer.Length;
-                this.StatusSendByteTextBlock.Text = this.SendBytesCount.ToString();
+                this.StatusSendByteLabel.Content = this.SendBytesCount.ToString();
             }
             catch (Exception ex)
             {
                 var str = ex.StackTrace;
                 Console.WriteLine(str);
-                this.StatusTextBlock.Text = "当前为16进制发送模式，请输入16进制数据";
+                this.StatusLabel.Content = "当前为16进制发送模式，请输入16进制数据";
                 this.AutoSendCheckBox.IsChecked = false; // 关闭自动发送
             }
         }
@@ -2366,8 +2375,8 @@ namespace PDS800_WirelessTransmitter_Calibration
             this.ReceiveBytesCount = 0;
             this.SendBytesCount = 0;
             // 更新数据显示
-            this.StatusReceiveByteTextBlock.Text = this.ReceiveBytesCount.ToString();
-            this.StatusSendByteTextBlock.Text = this.SendBytesCount.ToString();
+            this.StatusReceiveByteLabel.Content = this.ReceiveBytesCount.ToString();
+            this.StatusSendByteLabel.Content = this.SendBytesCount.ToString();
         }
 
         #endregion
@@ -2409,7 +2418,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         //    if (displayTextBox.Text == string.Empty)
         //    {
         //        // 如果没有字段，弹出失败提示
-        //        statusTextBlock.Text = "接收区为空，保存失败。";
+        //        statusLabel.Content = "接收区为空，保存失败。";
         //    }
         //    else
         //    {
@@ -2426,7 +2435,7 @@ namespace PDS800_WirelessTransmitter_Calibration
         //            // 将接收区所有字段写入到文本文档
         //            File.AppendAllText(saveFile.FileName, displayTextBox.Text);
         //            // 弹出成功提示
-        //            statusTextBlock.Text = "保存成功！";
+        //            statusLabel.Content = "保存成功！";
         //        }
         //    }
         //}
@@ -2693,14 +2702,14 @@ namespace PDS800_WirelessTransmitter_Calibration
                     this.EstablishConnectionButton.IsEnabled = false;
                     // 更新率锁定
                     this.RegularDataUpdateRate.IsEnabled = false;
-                    this.StatusTextBlock.Text = "正在连接仪表……";
+                    this.StatusLabel.Content = "正在连接仪表……";
                 }
                 catch (Exception ex)
                 {
                     var str = ex.StackTrace;
                     Console.WriteLine(str);
                     // 异常时显示提示文字
-                    this.StatusTextBlock.Text = "仪表连接出错！";
+                    this.StatusLabel.Content = "仪表连接出错！";
                     // 指示灯变灰
                     this.EstablishConnectionButton.IsEnabled = true;
                     this.EstablishConnectionButton.Content = "连接仪表";
@@ -2710,7 +2719,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             }
             else
             {
-                this.StatusTextBlock.Text = "请先解析仪表参数！";
+                this.StatusLabel.Content = "请先解析仪表参数！";
                 this.EstablishConnectionButton.IsChecked = false;
             }
         }
@@ -2824,14 +2833,14 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 更新率不锁定
                     this.RegularDataUpdateRate.IsEnabled = true;
                     this.EstablishConnectionButton.IsEnabled = true;
-                    this.StatusTextBlock.Text = "仪表连接已断开";
+                    this.StatusLabel.Content = "仪表连接已断开";
                 }
                 catch (Exception ex)
                 {
                     var str = ex.StackTrace;
                     Console.WriteLine(str);
                     // 异常时显示提示文字
-                    this.StatusTextBlock.Text = "断开仪表出错！";
+                    this.StatusLabel.Content = "断开仪表出错！";
                     // 指示灯变灰
                     this.EstablishConnectionButton.Content = "断开仪表";
                     this.EstablishConnectionButton.IsEnabled = true;
@@ -2840,7 +2849,7 @@ namespace PDS800_WirelessTransmitter_Calibration
             }
             else
             {
-                this.StatusTextBlock.Text = "请先解析仪表参数！";
+                this.StatusLabel.Content = "请先解析仪表参数！";
             }
         }
 
@@ -2950,19 +2959,19 @@ namespace PDS800_WirelessTransmitter_Calibration
                     //{
                     //    establishConnectionButton.IsChecked = false;
                     //}
-                    this.StatusTextBlock.Text = "描述标定已发送！";
+                    this.StatusLabel.Content = "描述标定已发送！";
                 }
                 catch (Exception ex)
                 {
                     var str = ex.StackTrace;
                     Console.WriteLine(str);
                     // 异常时显示提示文字
-                    this.StatusTextBlock.Text = "描述标定出错！";
+                    this.StatusLabel.Content = "描述标定出错！";
                 }
             }
             else
             {
-                this.StatusTextBlock.Text = "请先连接仪表！";
+                this.StatusLabel.Content = "请先连接仪表！";
             }
         }
 
@@ -3084,7 +3093,7 @@ namespace PDS800_WirelessTransmitter_Calibration
                     // 生成16进制字符串
                     this.SendTextBox.Text = this.ParameterCalibration_Text();
                     this.SerialPortSend(this.SendTextBox.Text);
-                    this.StatusTextBlock.Text = "参数标定已发送！";
+                    this.StatusLabel.Content = "参数标定已发送！";
 
                     // 标定连接发送
                     // SerialPortSend();
@@ -3094,12 +3103,12 @@ namespace PDS800_WirelessTransmitter_Calibration
                     var str = ex.StackTrace;
                     Console.WriteLine(str);
                     // 异常时显示提示文字
-                    this.StatusTextBlock.Text = "描述标定出错！";
+                    this.StatusLabel.Content = "描述标定出错！";
                 }
             }
             else
             {
-                this.StatusTextBlock.Text = "请先连接仪表！";
+                this.StatusLabel.Content = "请先连接仪表！";
             }
         }
 

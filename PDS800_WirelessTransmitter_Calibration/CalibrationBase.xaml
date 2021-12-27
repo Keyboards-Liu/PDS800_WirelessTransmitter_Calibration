@@ -46,7 +46,7 @@
                 <Setter Property="MinWidth"
                         Value="30" />
             </Style>
-            <Style TargetType="{x:Type TextBlock}">
+            <Style TargetType="{x:Type Label}">
                 <Setter Property="Margin"
                         Value="5" />
                 <Setter Property="VerticalAlignment"
@@ -59,14 +59,10 @@
                         Value="5" />
                 <Setter Property="VerticalAlignment"
                         Value="Center" />
-                <Setter Property="SelectedIndex"
-                        Value="0" />
                 <Setter Property="MinWidth"
                         Value="40" />
                 <Setter Property="Background"
                         Value="Snow" />
-                <Setter Property="Template"
-                        Value="{DynamicResource ComboBoxCalibration}" />
             </Style>
             <Style TargetType="{x:Type CheckBox}">
                 <Setter Property="Margin"
@@ -643,398 +639,6 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-            <ControlTemplate x:Key="ComboBoxCalibration"
-                             TargetType="{x:Type ComboBox}">
-                <Grid x:Name="templateRoot"
-                      SnapsToDevicePixels="True">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition MinWidth="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}"
-                                          Width="0" />
-                    </Grid.ColumnDefinitions>
-                    <Popup x:Name="PART_Popup"
-                           AllowsTransparency="True"
-                           Grid.ColumnSpan="2"
-                           IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                           Margin="1"
-                           PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}"
-                           Placement="Bottom">
-                        <Themes:SystemDropShadowChrome x:Name="shadow"
-                                                       Color="Transparent"
-                                                       MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                                                       MinWidth="{Binding ActualWidth, ElementName=templateRoot}">
-                            <Border x:Name="DropDownBorder"
-                                    BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}"
-                                    BorderThickness="1"
-                                    CornerRadius="5"
-                                    Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}">
-                                <ScrollViewer x:Name="DropDownScrollViewer"
-                                              Margin="5">
-                                    <Grid x:Name="grid"
-                                          RenderOptions.ClearTypeHint="Enabled">
-                                        <Canvas x:Name="canvas"
-                                                HorizontalAlignment="Left"
-                                                Height="0"
-                                                VerticalAlignment="Top"
-                                                Width="0">
-                                            <Rectangle x:Name="OpaqueRect"
-                                                       Fill="{Binding Background, ElementName=DropDownBorder}"
-                                                       Height="{Binding ActualHeight, ElementName=DropDownBorder}"
-                                                       Width="{Binding ActualWidth, ElementName=DropDownBorder}" />
-                                        </Canvas>
-                                        <ItemsPresenter x:Name="ItemsPresenter"
-                                                        KeyboardNavigation.DirectionalNavigation="Contained"
-                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
-                                    </Grid>
-                                </ScrollViewer>
-                            </Border>
-                        </Themes:SystemDropShadowChrome>
-                    </Popup>
-                    <ToggleButton x:Name="toggleButton"
-                                  BorderBrush="{TemplateBinding BorderBrush}"
-                                  BorderThickness="{TemplateBinding BorderThickness}"
-                                  Background="Lavender"
-                                  Grid.ColumnSpan="2"
-                                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
-                        <ToggleButton.Style>
-                            <Style TargetType="{x:Type ToggleButton}">
-                                <Setter Property="OverridesDefaultStyle"
-                                        Value="True" />
-                                <Setter Property="IsTabStop"
-                                        Value="False" />
-                                <Setter Property="Focusable"
-                                        Value="False" />
-                                <Setter Property="ClickMode"
-                                        Value="Press" />
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="{x:Type ToggleButton}">
-                                            <Border x:Name="templateRoot"
-                                                    BorderBrush="#FFACACAC"
-                                                    CornerRadius="5"
-                                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                                    SnapsToDevicePixels="True"
-                                                    Background="Lavender">
-                                                <Border x:Name="splitBorder"
-                                                        BorderBrush="Transparent"
-                                                        BorderThickness="1"
-                                                        HorizontalAlignment="Right"
-                                                        Margin="0"
-                                                        SnapsToDevicePixels="True"
-                                                        Width="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}">
-                                                    <Path x:Name="Arrow"
-                                                          Data="F1M0,0L2.667,2.66665 5.3334,0 5.3334,-1.78168 2.6667,0.88501 0,-1.78168 0,0z"
-                                                          Fill="#FF606060"
-                                                          HorizontalAlignment="Center"
-                                                          Margin="0"
-                                                          VerticalAlignment="Center" />
-                                                </Border>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource FindAncestor, AncestorLevel=1, AncestorType={x:Type ComboBox}}}"
-                                                                   Value="true" />
-                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}"
-                                                                   Value="false" />
-                                                        <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}"
-                                                                   Value="false" />
-                                                        <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource Self}}"
-                                                                   Value="true" />
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Background"
-                                                            TargetName="templateRoot"
-                                                            Value="White" />
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="templateRoot"
-                                                            Value="#FFABADB3" />
-                                                    <Setter Property="Background"
-                                                            TargetName="splitBorder"
-                                                            Value="Transparent" />
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="splitBorder"
-                                                            Value="Transparent" />
-                                                </MultiDataTrigger>
-                                                <Trigger Property="IsMouseOver"
-                                                         Value="True">
-                                                    <Setter Property="Fill"
-                                                            TargetName="Arrow"
-                                                            Value="Black" />
-                                                </Trigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}"
-                                                                   Value="true" />
-                                                        <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource FindAncestor, AncestorLevel=1, AncestorType={x:Type ComboBox}}}"
-                                                                   Value="false" />
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Background"
-                                                            TargetName="templateRoot">
-                                                        <Setter.Value>
-                                                            <LinearGradientBrush EndPoint="0,1"
-                                                                                 StartPoint="0,0">
-                                                                <GradientStop Color="#FFECF4FC"
-                                                                              Offset="0" />
-                                                                <GradientStop Color="#FFDCECFC"
-                                                                              Offset="1" />
-                                                            </LinearGradientBrush>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="templateRoot"
-                                                            Value="#FF7EB4EA" />
-                                                </MultiDataTrigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}"
-                                                                   Value="true" />
-                                                        <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource FindAncestor, AncestorLevel=1, AncestorType={x:Type ComboBox}}}"
-                                                                   Value="true" />
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Background"
-                                                            TargetName="templateRoot"
-                                                            Value="White" />
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="templateRoot"
-                                                            Value="#FF7EB4EA" />
-                                                    <Setter Property="Background"
-                                                            TargetName="splitBorder">
-                                                        <Setter.Value>
-                                                            <LinearGradientBrush EndPoint="0,1"
-                                                                                 StartPoint="0,0">
-                                                                <GradientStop Color="#FFEBF4FC"
-                                                                              Offset="0" />
-                                                                <GradientStop Color="#FFDCECFC"
-                                                                              Offset="1" />
-                                                            </LinearGradientBrush>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="splitBorder"
-                                                            Value="#FF7EB4EA" />
-                                                </MultiDataTrigger>
-                                                <Trigger Property="IsPressed"
-                                                         Value="True">
-                                                    <Setter Property="Fill"
-                                                            TargetName="Arrow"
-                                                            Value="Black" />
-                                                </Trigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}"
-                                                                   Value="true" />
-                                                        <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource FindAncestor, AncestorLevel=1, AncestorType={x:Type ComboBox}}}"
-                                                                   Value="false" />
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Background"
-                                                            TargetName="templateRoot">
-                                                        <Setter.Value>
-                                                            <LinearGradientBrush EndPoint="0,1"
-                                                                                 StartPoint="0,0">
-                                                                <GradientStop Color="#FFDAECFC"
-                                                                              Offset="0" />
-                                                                <GradientStop Color="#FFC4E0FC"
-                                                                              Offset="1" />
-                                                            </LinearGradientBrush>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="templateRoot"
-                                                            Value="#FF569DE5" />
-                                                </MultiDataTrigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}"
-                                                                   Value="true" />
-                                                        <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource FindAncestor, AncestorLevel=1, AncestorType={x:Type ComboBox}}}"
-                                                                   Value="true" />
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Background"
-                                                            TargetName="templateRoot"
-                                                            Value="White" />
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="templateRoot"
-                                                            Value="#FF569DE5" />
-                                                    <Setter Property="Background"
-                                                            TargetName="splitBorder">
-                                                        <Setter.Value>
-                                                            <LinearGradientBrush EndPoint="0,1"
-                                                                                 StartPoint="0,0">
-                                                                <GradientStop Color="#FFDAEBFC"
-                                                                              Offset="0" />
-                                                                <GradientStop Color="#FFC4E0FC"
-                                                                              Offset="1" />
-                                                            </LinearGradientBrush>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="splitBorder"
-                                                            Value="#FF569DE5" />
-                                                </MultiDataTrigger>
-                                                <Trigger Property="IsEnabled"
-                                                         Value="False">
-                                                    <Setter Property="Fill"
-                                                            TargetName="Arrow"
-                                                            Value="#FFBFBFBF" />
-                                                </Trigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource Self}}"
-                                                                   Value="false" />
-                                                        <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource FindAncestor, AncestorLevel=1, AncestorType={x:Type ComboBox}}}"
-                                                                   Value="false" />
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Background"
-                                                            TargetName="templateRoot"
-                                                            Value="#FFF0F0F0" />
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="templateRoot"
-                                                            Value="#FFD9D9D9" />
-                                                </MultiDataTrigger>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource Self}}"
-                                                                   Value="false" />
-                                                        <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource FindAncestor, AncestorLevel=1, AncestorType={x:Type ComboBox}}}"
-                                                                   Value="true" />
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Background"
-                                                            TargetName="templateRoot"
-                                                            Value="White" />
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="templateRoot"
-                                                            Value="#FFBFBFBF" />
-                                                    <Setter Property="Background"
-                                                            TargetName="splitBorder"
-                                                            Value="Transparent" />
-                                                    <Setter Property="BorderBrush"
-                                                            TargetName="splitBorder"
-                                                            Value="Transparent" />
-                                                </MultiDataTrigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ToggleButton.Style>
-                    </ToggleButton>
-                    <ContentPresenter x:Name="contentPresenter"
-                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                      Content="{TemplateBinding SelectionBoxItem}"
-                                      ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
-                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                      IsHitTestVisible="False"
-                                      Margin="{TemplateBinding Padding}"
-                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
-                </Grid>
-                <ControlTemplate.Triggers>
-                    <Trigger Property="HasDropShadow"
-                             SourceName="PART_Popup"
-                             Value="True">
-                        <Setter Property="Margin"
-                                TargetName="shadow"
-                                Value="0,0,5,5" />
-                        <Setter Property="Color"
-                                TargetName="shadow"
-                                Value="#71000000" />
-                    </Trigger>
-                    <Trigger Property="HasItems"
-                             Value="False">
-                        <Setter Property="Height"
-                                TargetName="DropDownBorder"
-                                Value="95" />
-                    </Trigger>
-                    <MultiTrigger>
-                        <MultiTrigger.Conditions>
-                            <Condition Property="IsGrouping"
-                                       Value="True" />
-                            <Condition Property="VirtualizingPanel.IsVirtualizingWhenGrouping"
-                                       Value="False" />
-                        </MultiTrigger.Conditions>
-                        <Setter Property="ScrollViewer.CanContentScroll"
-                                Value="False" />
-                    </MultiTrigger>
-                    <Trigger Property="CanContentScroll"
-                             SourceName="DropDownScrollViewer"
-                             Value="False">
-                        <Setter Property="Canvas.Top"
-                                TargetName="OpaqueRect"
-                                Value="{Binding VerticalOffset, ElementName=DropDownScrollViewer}" />
-                        <Setter Property="Canvas.Left"
-                                TargetName="OpaqueRect"
-                                Value="{Binding HorizontalOffset, ElementName=DropDownScrollViewer}" />
-                    </Trigger>
-                </ControlTemplate.Triggers>
-            </ControlTemplate>
-            <ControlTemplate x:Key="ButtonBaseCalibration"
-                             TargetType="{x:Type ButtonBase}">
-                <Border x:Name="border"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        Background="Lavender"
-                        SnapsToDevicePixels="True"
-                        CornerRadius="5"
-                        Width="80"
-                        Height="24">
-                    <ContentPresenter x:Name="contentPresenter"
-                                      ContentTemplate="{TemplateBinding ContentTemplate}"
-                                      Content="{TemplateBinding Content}"
-                                      ContentStringFormat="{TemplateBinding ContentStringFormat}"
-                                      Focusable="False"
-                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                      Margin="{TemplateBinding Padding}"
-                                      RecognizesAccessKey="True"
-                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"
-                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
-                </Border>
-                <ControlTemplate.Triggers>
-                    <Trigger Property="Button.IsDefaulted"
-                             Value="True">
-                        <Setter Property="BorderBrush"
-                                TargetName="border"
-                                Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
-                    </Trigger>
-                    <Trigger Property="IsMouseOver"
-                             Value="True">
-                        <Setter Property="Background"
-                                TargetName="border"
-                                Value="#FFBEE6FD" />
-                        <Setter Property="BorderBrush"
-                                TargetName="border"
-                                Value="#FF3C7FB1" />
-                    </Trigger>
-                    <Trigger Property="IsPressed"
-                             Value="True">
-                        <Setter Property="Background"
-                                TargetName="border"
-                                Value="#FFC4E5F6" />
-                        <Setter Property="BorderBrush"
-                                TargetName="border"
-                                Value="#FF2C628B" />
-                    </Trigger>
-                    <Trigger Property="ToggleButton.IsChecked"
-                             Value="True">
-                        <Setter Property="Background"
-                                TargetName="border"
-                                Value="#FFBCDDEE" />
-                        <Setter Property="BorderBrush"
-                                TargetName="border"
-                                Value="#FF245A83" />
-                    </Trigger>
-                    <Trigger Property="IsEnabled"
-                             Value="False">
-                        <Setter Property="Background"
-                                TargetName="border"
-                                Value="#FFF4F4F4" />
-                        <Setter Property="BorderBrush"
-                                TargetName="border"
-                                Value="#FFADB2B5" />
-                        <Setter Property="Foreground"
-                                Value="#FF838383" />
-                    </Trigger>
-                </ControlTemplate.Triggers>
-            </ControlTemplate>
             <SolidColorBrush x:Key="Button.Static.Background"
                              Color="Lavender" />
             <SolidColorBrush x:Key="Button.Static.Border"
@@ -1247,13 +851,13 @@
                           Content="打开串口"
                           Checked="TurnOnButton_Checked"
                           Unchecked="TurnOnButton_Unchecked" />
-            <TextBlock Text="串口状态"
+            <Label Content="串口状态"
                        DockPanel.Dock="Right" />
             <Ellipse x:Name="SerialPortStatusEllipse"
                      DockPanel.Dock="Right" />
-            <TextBlock Text="端口" />
+            <Label Content="端口" />
             <ComboBox x:Name="PortNameComboBox" />
-            <TextBlock Text="波特率" />
+            <Label Content="波特率" />
             <ComboBox x:Name="BaudRateComboBox"
                       SelectedIndex="6">
                 <!--自定义串口波特率-->
@@ -1275,15 +879,16 @@
                 <ComboBoxItem Content="460800" />
                 <ComboBoxItem Content="921600" />
             </ComboBox>
-            <TextBlock Text="校验位" />
-            <ComboBox x:Name="ParityComboBox">
+            <Label Content="校验位" />
+            <ComboBox x:Name="ParityComboBox"
+                      SelectedIndex="0">
                 <ComboBoxItem Content="None" />
                 <ComboBoxItem Content="Odd" />
                 <ComboBoxItem Content="Even" />
                 <ComboBoxItem Content="Mark" />
                 <ComboBoxItem Content="Space" />
             </ComboBox>
-            <TextBlock Text="数据位" />
+            <Label Content="数据位" />
             <ComboBox x:Name="DataBitsComboBox"
                       SelectedIndex="3">
                 <ComboBoxItem Content="5" />
@@ -1291,7 +896,7 @@
                 <ComboBoxItem Content="7" />
                 <ComboBoxItem Content="8" />
             </ComboBox>
-            <TextBlock Text="停止位" />
+            <Label Content="停止位" />
             <ComboBox x:Name="StopBitsComboBox"
                       SelectedIndex="0">
                 <ComboBoxItem Content="1" />
@@ -1314,7 +919,7 @@
                         <Ellipse x:Name="ConnectionStatusEllipse"
                                  DockPanel.Dock="Left"
                                  Margin="5" />
-                        <TextBlock Text="仪表连接状态"
+                        <Label Content="仪表连接状态"
                                    DockPanel.Dock="Left" />
                         <ToggleButton x:Name="EstablishConnectionButton"
                                       DockPanel.Dock="Right"
@@ -1327,7 +932,7 @@
                         <Ellipse x:Name="SqlConnectEllipse"
                                  DockPanel.Dock="Left"
                                  Margin="5" />
-                        <TextBlock Text="数据库连接状态"
+                        <Label Content="数据库连接状态"
                                    DockPanel.Dock="Left" />
                         <ToggleButton x:Name="SqlConnectButton"
                                       DockPanel.Dock="Right"
@@ -1391,14 +996,14 @@
                                Margin="5"
                                VerticalAlignment="Center"
                                Grid.ColumnSpan="2">
-                        <TextBlock VerticalAlignment="Center"
-                                   Text="自动发送周期" />
+                        <Label VerticalAlignment="Center"
+                                   Content="自动发送周期" />
                         <TextBox x:Name="AutoSendCycleTextBox"
                                  Margin="0"
                                  Text="1000"
                                  MinWidth="66"
                                  VerticalAlignment="Center" />
-                        <TextBlock Text="毫秒"
+                        <Label Content="毫秒"
                                    Margin="0"
                                    VerticalAlignment="Center" />
                     </DockPanel>
@@ -1438,7 +1043,7 @@
                                Grid.Row="2"
                                Margin="0"
                                Grid.ColumnSpan="2">
-                        <TextBlock Text="文件路径"
+                        <Label Content="文件路径"
                                    Margin="5"
                                    VerticalAlignment="Center" />
                         <TextBox x:Name="FileNameTextBox"
@@ -1459,9 +1064,9 @@
                 <TabItem Header="参数标定">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top">
-                            <TextBlock HorizontalAlignment="Left"
+                            <Label HorizontalAlignment="Left"
                                        VerticalAlignment="Center"
-                                       Text="标定参数" />
+                                       Content="标定参数" />
                             <ComboBox x:Name="CalibrationParametersComboBox"
                                       SelectedIndex="0">
                                 <ComboBoxItem Content="0x50，下限标定" />
@@ -1473,7 +1078,7 @@
                             </ComboBox>
                         </DockPanel>
                         <DockPanel DockPanel.Dock="Top">
-                            <TextBlock Text="单位" />
+                            <Label Content="单位" />
                             <ComboBox x:Name="CalibrationUnitComboBox"
                                       SelectedIndex="0">
                                 <ComboBoxItem Content="0x02，Pa(帕)" />
@@ -1497,7 +1102,7 @@
                             </ComboBox>
                         </DockPanel>
                         <DockPanel DockPanel.Dock="Top">
-                            <TextBlock Text="标定数据" />
+                            <Label Content="标定数据" />
                             <TextBox x:Name="CalibrationParametersContentTextBox"
                                      Text="00"
                                      VerticalAlignment="Center" />
@@ -1540,9 +1145,9 @@
                             </ScrollViewer.ToolTip>
                             <DockPanel>
                                 <DockPanel DockPanel.Dock="Top">
-                                    <TextBlock HorizontalAlignment="Left"
+                                    <Label HorizontalAlignment="Left"
                                                VerticalAlignment="Center"
-                                               Text="仪表型号（8byte）" />
+                                               Content="仪表型号（8byte）" />
                                     <TextBox x:Name="CalibrationInstrumentModelTextBox"
                                              Margin="0"
                                              Text="00 01 02 03 04 05 06 07"
@@ -1550,9 +1155,9 @@
                                              PreviewTextInput="CalibrationInstrumentModelTextBox_PreviewTextInput" />
                                 </DockPanel>
                                 <DockPanel DockPanel.Dock="Top">
-                                    <TextBlock HorizontalAlignment="Left"
+                                    <Label HorizontalAlignment="Left"
                                                VerticalAlignment="Center"
-                                               Text="系列号（16byte）" />
+                                               Content="系列号（16byte）" />
                                     <TextBox x:Name="CalibrationSerialNumberTextBox"
                                              PreviewTextInput="CalibrationSerialNumberTextBox_PreviewTextInput"
                                              Margin="0"
@@ -1560,9 +1165,9 @@
                                              VerticalAlignment="Center" />
                                 </DockPanel>
                                 <DockPanel DockPanel.Dock="Top">
-                                    <TextBlock HorizontalAlignment="Left"
+                                    <Label HorizontalAlignment="Left"
                                                VerticalAlignment="Center"
-                                               Text="IP等级（8byte）" />
+                                               Content="IP等级（8byte）" />
                                     <TextBox x:Name="CalibrationIpRatingTextBox"
                                              PreviewTextInput="CalibrationIPRatingTextBox_PreviewTextInput"
                                              Margin="0"
@@ -1570,9 +1175,9 @@
                                              VerticalAlignment="Center" />
                                 </DockPanel>
                                 <DockPanel DockPanel.Dock="Top">
-                                    <TextBlock HorizontalAlignment="Left"
+                                    <Label HorizontalAlignment="Left"
                                                VerticalAlignment="Center"
-                                               Text="防爆等级（12byte）" />
+                                               Content="防爆等级（12byte）" />
                                     <TextBox x:Name="CalibrationExplosionProofLevelTextBox"
                                              PreviewTextInput="CalibrationExplosionProofLevelTextBox_PreviewTextInput"
                                              Margin="0"
@@ -1580,9 +1185,9 @@
                                              VerticalAlignment="Center" />
                                 </DockPanel>
                                 <DockPanel DockPanel.Dock="Top">
-                                    <TextBlock HorizontalAlignment="Left"
+                                    <Label HorizontalAlignment="Left"
                                                VerticalAlignment="Center"
-                                               Text="说明（10byte）" />
+                                               Content="说明（10byte）" />
                                     <TextBox x:Name="CalibrationInstructionsTextBox"
                                              PreviewTextInput="CalibrationInstructionsTextBox_PreviewTextInput"
                                              Margin="0"
@@ -1644,13 +1249,13 @@
                                   Content="自动清空"
                                   DockPanel.Dock="Right"
                                   IsChecked="True" />
-                        <TextBlock DockPanel.Dock="Left"
-                                   Text="数据更新率" />
+                        <Label DockPanel.Dock="Left"
+                                   Content="数据更新率" />
                         <TextBox x:Name="RegularDataUpdateRate"
                                  DockPanel.Dock="Left"
                                  PreviewTextInput="RegularDataUpdateRate_PreviewTextInput" />
-                        <TextBlock DockPanel.Dock="Left"
-                                   Text="秒" />
+                        <Label DockPanel.Dock="Left"
+                                   Content="秒" />
                     </DockPanel>
                 </Grid>
             </GroupBox>
@@ -1660,142 +1265,142 @@
                 <WrapPanel x:Name="InstrumentParameterAnalysisWrapPanel">
                     <DockPanel x:Name="ResProtocolDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="通信协议" />
+                        <Label Content="通信协议" />
                         <TextBox x:Name="ResProtocol"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResAddressDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="网络地址" />
+                        <Label Content="网络地址" />
                         <TextBox x:Name="ResAddress"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResVendorDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="厂商号" />
+                        <Label Content="厂商号" />
                         <TextBox x:Name="ResVendor"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResTypeDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="仪表类型" />
+                        <Label Content="仪表类型" />
                         <TextBox x:Name="ResType"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResGroupDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="仪表组号" />
+                        <Label Content="仪表组号" />
                         <TextBox x:Name="ResGroup"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResFunctionDataDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="数据类型" />
+                        <Label Content="数据类型" />
                         <TextBox x:Name="ResFunctionData"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <!--仪表实时数据解析-->
                     <DockPanel x:Name="ResSucRateDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="通信效率" />
+                        <Label Content="通信效率" />
                         <TextBox x:Name="ResSucRate"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResBatVolDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="电池电压" />
+                        <Label Content="电池电压" />
                         <TextBox x:Name="ResBatVol"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResSleepTimeDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="休眠时间" />
+                        <Label Content="休眠时间" />
                         <TextBox x:Name="ResSleepTime"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResStatueDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="仪表状态" />
+                        <Label Content="仪表状态" />
                         <TextBox x:Name="ResStatue"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResTimeDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="运行时间" />
+                        <Label Content="运行时间" />
                         <TextBox x:Name="ResTime"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResDataDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="实时数据" />
+                        <Label Content="实时数据" />
                         <TextBox x:Name="ResData"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <!--仪表基本参数解析-->
                     <DockPanel x:Name="ResModelDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="仪表型号" />
+                        <Label Content="仪表型号" />
                         <TextBox x:Name="ResModel"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResSerialNumberDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="系列号" />
+                        <Label Content="系列号" />
                         <TextBox x:Name="ResSerialNumber"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResFirmwareVersionDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="固件版本" />
+                        <Label Content="固件版本" />
                         <TextBox x:Name="ResFirmwareVersion"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResSoftwareVersionDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="软件版本" />
+                        <Label Content="软件版本" />
                         <TextBox x:Name="ResSoftwareVersion"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResLowRangeDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="量程下限" />
+                        <Label Content="量程下限" />
                         <TextBox x:Name="ResLowRange"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResHighRangeDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="量程上限" />
+                        <Label Content="量程上限" />
                         <TextBox x:Name="ResHighRange"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResMeasurementAccuracyDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="测量精度" />
+                        <Label Content="测量精度" />
                         <TextBox x:Name="ResMeasurementAccuracy"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResProtectionLevelDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="防护等级" />
+                        <Label Content="防护等级" />
                         <TextBox x:Name="ResProtectionLevel"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResExplosionProofGradeDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="防爆等级" />
+                        <Label Content="防爆等级" />
                         <TextBox x:Name="ResExplosionProofGrade"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <DockPanel x:Name="ResIllustrateDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="说明" />
+                        <Label Content="说明" />
                         <TextBox x:Name="ResIllustrate"
                                  IsReadOnly="True" />
                     </DockPanel>
                     <!--校验码解析-->
                     <DockPanel x:Name="ResCyclicRedundancyCheckDockPanel"
                                Visibility="Collapsed">
-                        <TextBlock Text="校验码" />
+                        <Label Content="校验码" />
                         <TextBox x:Name="ResCyclicRedundancyCheck"
                                  IsReadOnly="True" />
                     </DockPanel>
@@ -1891,28 +1496,28 @@
             </StatusBar.ItemsPanel>
             <StatusBarItem>
                 <!--提示栏-->
-                <TextBlock x:Name="StatusTextBlock"
+                <Label x:Name="StatusLabel"
                            Foreground="Red" />
             </StatusBarItem>
             <StatusBarItem Grid.Column="1"
                            HorizontalAlignment="Right">
                 <!--接收字节数-->
-                <TextBlock Text="接收字节数" />
+                <Label Content="接收字节数" />
             </StatusBarItem>
             <StatusBarItem Grid.Column="2">
-                <TextBlock x:Name="StatusReceiveByteTextBlock"
+                <Label x:Name="StatusReceiveByteLabel"
                            Foreground="Blue"
-                           Text="0" />
+                           Content="0" />
             </StatusBarItem>
             <StatusBarItem Grid.Column="3"
                            HorizontalAlignment="Right">
                 <!--发送字节数-->
-                <TextBlock Text="发送字节数" />
+                <Label Content="发送字节数" />
             </StatusBarItem>
             <StatusBarItem Grid.Column="4">
-                <TextBlock x:Name="StatusSendByteTextBlock"
+                <Label x:Name="StatusSendByteLabel"
                            Foreground="Blue"
-                           Text="0" />
+                           Content="0" />
             </StatusBarItem>
             <StatusBarItem Grid.Column="5">
                 <!--计数清零-->
@@ -1924,9 +1529,8 @@
             <StatusBarItem Grid.Column="6"
                            HorizontalAlignment="Right">
                 <!--当前时间-->
-                <TextBlock x:Name="OperationTime"
-                           Foreground="Blue"
-                           Text="0" />
+                <Label x:Name="OperationTime"
+                           Foreground="Blue" />
             </StatusBarItem>
         </StatusBar>
     </Grid>
